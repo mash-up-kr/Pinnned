@@ -18,9 +18,10 @@ Source of truth is `.claude/`. This file is a map. Do not restate rules here.
 
 ## Non-negotiable
 
-- No `git commit` without the user approving that specific commit. `/gone-gaming` is the only exception.
+- No `git commit` without the user approving that specific commit. Exceptions: `/gone-gaming`, and the `weekly-triage` GitHub Actions run (`.github/weekly-triage/PROMPT.md`) after verification passes.
 - Any commit request → follow `.claude/skills/commit/SKILL.md`. Any PR request → `.claude/skills/pr/SKILL.md`. Natural-language skill triggers are unreliable; follow the file regardless.
 - Change only what the request requires. Reuse `src/shared` code and design tokens before adding anything new.
+- Production errors flow `/report-error` → Notion QA DB. Weekly triage prompt: `.github/weekly-triage/PROMPT.md`; Notion CLI: `scripts/qa-notion.mjs`.
 
 ## Skills, agents, hooks
 

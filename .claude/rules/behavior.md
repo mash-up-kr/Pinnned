@@ -73,6 +73,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - This applies even mid-task, even when the user has been steadily approving prior steps — approval doesn't carry forward to the next commit.
 - The `udumeoli-coordinator` Commit phase must pause for commit approval before running `git commit`; PR opening stays outside coordinator unless the user separately requests the PR procedure.
 - `/gone-gaming` is the only exception: it must be directly invoked, run on a dedicated non-`main` branch/worktree, and skip commit approval only after required verification and reviewer checks pass. If required verification remains red, it must not commit, push, or open a PR.
+- Second exception: the `weekly-triage` GitHub Actions run (`.github/workflows/weekly-triage.yml`, no human present) commits, pushes its own `fix/weekly-triage-*` branch, and opens the PR without approval, only after `pnpm typecheck && pnpm lint && pnpm test && pnpm build` pass.
 
 ## 6. Always Use the Commit/PR Skill Procedures
 
