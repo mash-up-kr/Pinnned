@@ -6,3 +6,4 @@ export {
   setCurrentRoute,
 } from "./reporter"
 export type { ErrorReport, ErrorReportKind } from "./reporter"
+export { ErrorReporterRuntime } from "./runtime"
