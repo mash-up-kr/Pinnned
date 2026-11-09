@@ -25,6 +25,15 @@ const config = defineConfig({
   test: {
     env: { VITE_USE_MOCK: "true" },
   },
+  // 운영 에러 스택을 /report-error 서버 라우트가 원본 소스 위치로 복원하기 위해 .map을 함께 배포한다.
+  // hidden: 번들에 sourceMappingURL 주석을 남기지 않아 브라우저 devtools가 자동 로드하지 않는다.
+  build: { sourcemap: "hidden" },
+  define: {
+    // 에러 리포트에 실리는 앱 버전 — CI(deploy.yml)에서는 커밋 SHA, 로컬은 "dev"
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(
+      (process.env.GITHUB_SHA ?? "dev").slice(0, 7)
+    ),
+  },
   plugins: [
     devtools(),
     viteTsConfigPaths({
@@ -37,6 +46,8 @@ const config = defineConfig({
         routesDirectory: "./app/routes",
         generatedRouteTree: "./routeTree.gen.ts",
       },
+      // SSR 예외를 에러 리포트로 남기기 위해 서버 엔트리를 직접 둔다 (src/app/server.ts)
+      server: { entry: "./app/server.ts" },
     }),
     // Vercel 배포용 서버 번들 변환 — 없으면 SSR 함수가 생성되지 않아 404 (Vercel 공식 TanStack Start 가이드)
     nitro({
