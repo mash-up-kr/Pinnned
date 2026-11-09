@@ -1,6 +1,7 @@
 import { ClientError, GraphQLClient } from "graphql-request"
 
 import { authFetch } from "./auth-fetch"
+import { reportGraphQLResponse } from "./error-reporter/api-failure"
 import { getAccessToken } from "./token-storage"
 
 // 목 모드는 테스트 전용 — vite.config.ts의 test.env가 VITE_USE_MOCK=true로 고정해
@@ -26,6 +27,8 @@ export const API_BASE_URL =
 export const gqlClient = new GraphQLClient(endpoint, {
   credentials: "include",
   fetch: authFetch,
+  // GraphQL 에러·5xx·네트워크 실패를 운영 에러 수집기에 보고한다
+  responseMiddleware: reportGraphQLResponse,
   headers: (): Record<string, string> => {
     const token = getAccessToken()
     return token ? { Authorization: `Bearer ${token}` } : {}
