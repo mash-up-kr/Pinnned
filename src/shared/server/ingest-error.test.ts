@@ -113,6 +113,32 @@ describe("ingestServerError", () => {
   })
 })
 
+describe("ingestServerError — 라우트 정규화", () => {
+  it("동적 세그먼트를 라우트 패턴으로 바꿔 기록한다", async () => {
+    const fetchSpy = vi.fn<typeof fetch>()
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ results: [] }), { status: 200 })
+      )
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+    vi.stubGlobal("fetch", fetchSpy)
+    vi.stubEnv("NOTION_TOKEN", "ntn_x")
+    vi.stubEnv("NOTION_QA_DB_ID", "db")
+
+    await ingestServerError(
+      new Request("https://www.pinnned.co.kr/i/AB12cd"),
+      new Error("ssr boom")
+    )
+
+    const createBody = JSON.parse(fetchSpy.mock.calls[1][1]?.body as string)
+    expect(createBody.properties["라우트"]).toEqual({
+      rich_text: [{ text: { content: "/i/$code" } }],
+    })
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+})
+
 describe("parseErrorReport", () => {
   it("정상 페이로드는 그대로 돌려준다", () => {
     expect(parseErrorReport(REPORT)).toEqual(REPORT)

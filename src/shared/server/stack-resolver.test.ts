@@ -84,3 +84,28 @@ describe("createMapFetcher", () => {
     expect(await fetchMap(`${BUNDLE_URL}.map`)).toBeNull()
   })
 })
+
+describe("resolveStack — 깨진 맵", () => {
+  it("맵이 JSON이 아니면 throw 없이 원본 스택을 돌려준다", async () => {
+    const result = await resolveStack(MINIFIED_STACK, {
+      fetchMap: () => Promise.resolve("<html>not a map</html>"),
+    })
+
+    expect(result.resolved).toBe(false)
+    expect(result.text).toBe(MINIFIED_STACK)
+  })
+})
+
+describe("createMapFetcher — 타임아웃", () => {
+  it("fetch에 타임아웃 signal을 붙인다", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal("fetch", fetchMock)
+    fetchMock.mockResolvedValue(new Response(FIXTURE_MAP, { status: 200 }))
+
+    await createMapFetcher("https://www.pinnned.co.kr")(`${BUNDLE_URL}.map`)
+
+    const init = fetchMock.mock.calls[0][1]
+    expect(init?.signal).toBeInstanceOf(AbortSignal)
+    vi.unstubAllGlobals()
+  })
+})

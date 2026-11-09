@@ -5,11 +5,14 @@ import {
   parseErrorReport,
 } from "@/shared/server/ingest-error"
 import { createQaNotionClient } from "@/shared/server/qa-notion"
+import { createRateLimiter } from "@/shared/server/rate-limit"
 import { createMapFetcher } from "@/shared/server/stack-resolver"
 
 const ALLOWED_ORIGIN = "https://www.pinnned.co.kr"
 const MAX_BODY_BYTES = 32 * 1024
 const NO_CONTENT = () => new Response(null, { status: 204 })
+/** 인스턴스당 분당 60건. 정상 트래픽은 세션당 20건 상한이라 이 아래에 머문다 */
+const allowReport = createRateLimiter(60, 60_000)
 
 // 함수 인스턴스가 살아 있는 동안 .map 캐시를 재사용한다 (Vercel Fluid Compute)
 let mapFetcher: {
@@ -30,6 +33,8 @@ export const Route = createFileRoute("/report-error")({
           const origin = request.headers.get("origin")
           const allowAny = process.env.REPORT_ERROR_ALLOW_ANY_ORIGIN === "true"
           if (!allowAny && origin !== ALLOWED_ORIGIN) return NO_CONTENT()
+          // Origin은 위조 가능하다 — 남용으로 노션 한도(3rps)가 소진되면 정상 리포트까지 유실되므로 상한을 둔다
+          if (!allowReport()) return NO_CONTENT()
 
           const length = Number(request.headers.get("content-length") ?? 0)
           if (length > MAX_BODY_BYTES) return NO_CONTENT()

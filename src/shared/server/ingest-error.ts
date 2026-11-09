@@ -3,6 +3,7 @@ import { createQaNotionClient } from "./qa-notion"
 import { resolveStack } from "./stack-resolver"
 import type { ErrorReport, ErrorReportKind } from "@/shared/api/error-reporter"
 import type { QaNotionClient } from "./qa-notion"
+import { normalizeRestPath } from "@/shared/api/error-reporter"
 
 const KINDS: ReadonlySet<string> = new Set<ErrorReportKind>([
   "js-error",
@@ -129,6 +130,19 @@ export async function ingestErrorReport(
   })
 }
 
+// 동적 라우트. 클라이언트 리포트의 routePattern(라우터 fullPath)과 같은 문자열이어야 같은 지문으로 묶인다.
+// ponytail: 라우트 트리를 import하면 report-error 라우트와 순환이 생겨 손으로 적는다. 동적 라우트가 늘면 여기도 추가.
+const DYNAMIC_ROUTES: Array<[RegExp, string]> = [
+  [/^\/i\/[^/]+\/?$/, "/i/$code"],
+  [/^\/my-page\/pot\/[^/]+\/?$/, "/my-page/pot/$potId"],
+  [/^\/travel-album\/[^/]+\/?$/, "/travel-album/$region"],
+]
+
+function toRoutePattern(pathname: string): string {
+  const matched = DYNAMIC_ROUTES.find(([pattern]) => pattern.test(pathname))
+  return matched ? matched[1] : normalizeRestPath(pathname)
+}
+
 /**
  * 서버 엔트리용. SSR 예외·5xx를 ssr-error로 기록한다. env가 없거나 실패하면 조용히 넘어간다.
  * /report-error 자체의 실패는 기록하지 않는다 (재귀 방지).
@@ -152,7 +166,7 @@ export async function ingestServerError(
       {
         kind: "ssr-error",
         ...shape,
-        routePattern: url.pathname,
+        routePattern: toRoutePattern(url.pathname),
         breadcrumbs: [],
         userAgent: request.headers.get("user-agent") ?? "",
         viewport: "",

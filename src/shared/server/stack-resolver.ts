@@ -25,6 +25,17 @@ function cleanSourcePath(source: string): string {
   return index >= 0 ? source.slice(index) : source
 }
 
+/** 200이지만 맵이 아닌 응답(HTML 에러 페이지 등)은 복원 실패로 취급한다 — 기록 자체가 사라지면 안 된다. */
+function parseConsumer(raw: string): SourceMapConsumer | null {
+  try {
+    return new SourceMapConsumer(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+const MAP_FETCH_TIMEOUT_MS = 3000
+
 /**
  * 압축 스택의 자사 번들 프레임을 원본 위치로 바꾼다.
  * 프레임 열은 브라우저 기준 1-based, source-map은 0-based라 1을 뺀다.
@@ -48,7 +59,7 @@ export async function resolveStack(
     let consumer = consumers.get(bundleUrl)
     if (consumer === undefined) {
       const raw = await options.fetchMap(`${bundleUrl}.map`)
-      consumer = raw ? new SourceMapConsumer(JSON.parse(raw)) : null
+      consumer = raw ? parseConsumer(raw) : null
       consumers.set(bundleUrl, consumer)
     }
     const position = consumer?.originalPositionFor({
@@ -84,7 +95,9 @@ export function createMapFetcher(
     if (!mapUrl.startsWith(origin)) return Promise.resolve(null)
     let pending = cache.get(mapUrl)
     if (!pending) {
-      pending = fetch(mapUrl)
+      pending = fetch(mapUrl, {
+        signal: AbortSignal.timeout(MAP_FETCH_TIMEOUT_MS),
+      })
         .then((res) => (res.ok ? res.text() : null))
         .catch(() => null)
       cache.set(mapUrl, pending)
