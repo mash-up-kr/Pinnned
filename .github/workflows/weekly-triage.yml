@@ -85,10 +85,12 @@ jobs:
           GH_TOKEN: ${{ secrets.TRIAGE_GH_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Claude GitHub App 설치 없이 PAT로 동작시킨다 (앱 OIDC 교환 생략)
+          github_token: ${{ secrets.TRIAGE_GH_TOKEN }}
           prompt: |
             .github/weekly-triage/PROMPT.md 를 읽고 그대로 수행한다.
             대상 기간 since=${{ steps.period.outputs.since }} until=${{ steps.period.outputs.until }}
             오늘=${{ steps.period.outputs.today }}
           claude_args: |
             --max-turns 80
-            --allowedTools "Bash(pnpm:*),Bash(node:*),Bash(gh:*),Bash(git:*),Bash(curl:*),Read,Edit,Write,Glob,Grep"
+            --allowedTools "Bash(pnpm:*),Bash(node:*),Bash(gh:*),Bash(git:*),Read,Edit,Write,Glob,Grep"
