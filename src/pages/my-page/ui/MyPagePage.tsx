@@ -15,7 +15,6 @@ import { clearTokens, getRefreshToken } from "@/shared/api/token-storage"
 import { landingToastClassName } from "@/shared/lib/landing-toast"
 import {
   removeSeedPhotosByUploader,
-  useAllPhotos,
   usePhotoUploadStore,
 } from "@/entities/photo"
 import { useRegionColorStore } from "@/entities/region"
@@ -24,7 +23,6 @@ import { useMe, useSessionStore, withdrawAccount } from "@/entities/user"
 import { RequireAuth, logoutSession } from "@/features/auth"
 import { resetMapTipsSeen, resetOnboardingSeen } from "@/features/onboarding"
 import { resetCompletionTips } from "@/widgets/travel-map-google"
-import { BottomNav } from "@/widgets/bottom-nav"
 import { APP_VERSION } from "@/shared/config/app"
 import iconAlertDangerSrc from "@/shared/assets/icon-alert-danger.svg"
 import iconChevronRightSrc from "@/shared/assets/icon-chevron-right.svg"
@@ -41,10 +39,11 @@ const popupModalClassName =
   "w-[343px] max-w-[calc(100%-2rem)] gap-4 rounded-[32px] p-4 shadow-[0px_0px_20px_0px_rgba(142,150,169,0.12)]"
 
 const sectionTitleCls = "px-2 py-1 text-h8-1 text-neutral-500"
-const menuRowCls = "flex min-h-11 w-full items-center gap-1 px-2 py-3 text-left"
+const menuRowCls =
+  "flex min-h-11 w-full items-center gap-1 rounded-xl px-2 py-3 text-left transition-colors duration-100 active:bg-bg-neutral-solid motion-reduce:transition-none"
 const menuLabelCls = "min-w-0 flex-1 truncate text-h8-1 text-fg-neutral-bold"
 const potRowCls =
-  "flex min-h-14 w-full items-center justify-between gap-2 overflow-hidden rounded-[24px] border border-stroke-neutral-weak bg-bg-neutral-weak p-4 text-left"
+  "flex min-h-14 w-full items-center justify-between gap-2 overflow-hidden rounded-[24px] border border-stroke-neutral-weak bg-bg-neutral-weak p-4 text-left transition-transform duration-100 ease-out active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
 
 function openExternal(url: string) {
   window.open(url, "_blank", "noopener,noreferrer")
@@ -161,9 +160,6 @@ function MyPageContent() {
   const logout = useSessionStore((s) => s.logout)
   const selectPot = usePotStore((s) => s.selectPot)
   const resetPots = usePotStore((s) => s.resetPots)
-  const currentPotId = usePotStore((s) => s.currentPotId)
-  // 지도 화면과 동일 조건 — 여행 기록이 하나도 없으면 앨범 진입 불가 (MapGooglePage canOpenAlbum)
-  const canOpenAlbum = useAllPhotos(currentPotId, localUser?.id).length > 0
   const clearRegionFills = useRegionColorStore((s) => s.clearAll)
   const removePhotosByUploader = usePhotoUploadStore(
     (s) => s.removePhotosByUploader
@@ -357,17 +353,6 @@ function MyPageContent() {
           </section>
         </div>
       </main>
-
-      {/* 하단 내비 — 지도·앨범 화면과 동일하게 바닥에서 34px(홈 인디케이터 영역) 띄움 */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),34px)] z-10">
-        <BottomNav
-          className="pointer-events-auto"
-          active="my-page"
-          albumDisabled={!canOpenAlbum}
-          onAlbumClick={() => router.navigate({ to: "/travel-album" })}
-          onGlobeClick={() => router.navigate({ to: "/map-google" })}
-        />
-      </div>
     </MobileLayout>
   )
 }

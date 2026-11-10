@@ -17,7 +17,7 @@ const meta: Meta<typeof ButtonCta> = {
     docs: {
       description: {
         component:
-          "Figma Button - CTA v1.0.0. 풀폭 pill 주요 액션 버튼. variant primary·secondary·danger, default/disabled.",
+          "Figma Button - CTA v1.0.0. 풀폭 pill 주요 액션 버튼. variant primary·secondary·danger, default/disabled. 터치 중 0.98배로 짧게 반응하며 모션 감소 설정에서는 변형하지 않는다.",
       },
     },
   },

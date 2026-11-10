@@ -4,7 +4,6 @@ import { useRouter } from "@tanstack/react-router"
 import { RegionAlbumCard, RegionAlbumCardSkeleton } from "./RegionAlbumCard"
 import type { Photo } from "@/entities/photo"
 import { AppHeader } from "@/widgets/app-header"
-import { BottomNav } from "@/widgets/bottom-nav"
 import { PotSelector } from "@/widgets/pot-dropdown"
 import { MobileLayout } from "@/shared/ui/mobile-layout"
 import { QueryFeedback } from "@/shared/ui/query-feedback"
@@ -116,16 +115,6 @@ function TravelAlbumPageContent() {
           />
         ))}
       </main>
-
-      {/* 하단 내비 — 지도 화면과 동일하게 바닥에서 34px(홈 인디케이터 영역) 띄움 */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),34px)] z-10">
-        <BottomNav
-          className="pointer-events-auto"
-          active="album"
-          onGlobeClick={() => router.navigate({ to: "/map-google" })}
-          onMyPageClick={() => router.navigate({ to: "/my-page" })}
-        />
-      </div>
     </MobileLayout>
   )
 }
