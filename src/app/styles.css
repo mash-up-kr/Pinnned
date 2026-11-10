@@ -627,6 +627,14 @@
         animation: app-screen-fade-in 160ms ease-out both;
     }
 
+    html:active-view-transition-type(app-fade)::view-transition-old(app-screen) {
+        animation: app-screen-fade-out 160ms ease-out both;
+    }
+
+    html:active-view-transition-type(app-fade)::view-transition-new(app-screen) {
+        animation: app-screen-fade-in 160ms ease-out both;
+    }
+
     @keyframes app-screen-fade-out {
         to {
             opacity: 0;
