@@ -15,8 +15,18 @@ export const STATUS_OPTIONS = [
   "재발",
   "무시",
 ]
+/** 표 맨 왼쪽 뱃지. 상태에서 파생: 해결·무시 → Done, 그 외 → Todo */
+export const PROGRESS_OPTIONS = [
+  { name: "Todo", color: "red" },
+  { name: "Done", color: "green" },
+]
+export function progressFor(status) {
+  return status === "해결" || status === "무시" ? "Done" : "Todo"
+}
+
 const SELECT_PROPS = {
   상태: STATUS_OPTIONS,
+  진행: PROGRESS_OPTIONS.map((o) => o.name),
   출처: ["자동수집", "수동제보"],
   // src/shared/server/row-content.ts의 KIND_LABELS와 같아야 한다
   종류: [
@@ -38,6 +48,7 @@ export function createDbProperties() {
   const props = { 제목: { title: {} } }
   for (const [name, options] of Object.entries(SELECT_PROPS))
     props[name] = { select: { options: options.map((o) => ({ name: o })) } }
+  props["진행"] = { select: { options: PROGRESS_OPTIONS } }
   for (const name of TEXT_PROPS) props[name] = { rich_text: {} }
   for (const name of URL_PROPS) props[name] = { url: {} }
   props["발생 횟수"] = { number: {} }

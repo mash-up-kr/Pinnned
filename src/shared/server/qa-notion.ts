@@ -9,6 +9,8 @@ const RICH_TEXT_LIMIT = 2000
 export const QA_PROPS = {
   title: "제목",
   status: "상태",
+  /** 표 맨 왼쪽 뱃지. Todo/Done 둘뿐, 상태에서 파생: 해결·무시 → Done */
+  progress: "진행",
   source: "출처",
   kind: "종류",
   screen: "화면",
@@ -139,6 +141,7 @@ export function createQaNotionClient(
       const properties: Record<string, unknown> = {
         [QA_PROPS.title]: { title: [{ text: { content: input.title } }] },
         [QA_PROPS.status]: select("신규"),
+        [QA_PROPS.progress]: select("Todo"),
         [QA_PROPS.source]: select("자동수집"),
         [QA_PROPS.kind]: select(input.kindLabel),
         [QA_PROPS.severity]: select(input.severity),
@@ -165,7 +168,10 @@ export function createQaNotionClient(
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.environment]: text(input.environment),
       }
-      if (input.reopen) properties[QA_PROPS.status] = select("재발")
+      if (input.reopen) {
+        properties[QA_PROPS.status] = select("재발")
+        properties[QA_PROPS.progress] = select("Todo")
+      }
       await call("PATCH", `/pages/${pageId}`, { properties })
     },
   }

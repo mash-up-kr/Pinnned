@@ -93,6 +93,7 @@ describe("createQaNotionClient", () => {
       rich_text: [{ text: { content: "회원가입 화면에서 오류가 남" } }],
     })
     expect(props[QA_PROPS.status]).toEqual({ select: { name: "신규" } })
+    expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
     expect(props[QA_PROPS.severity]).toEqual({ select: { name: "보통" } })
     expect(props[QA_PROPS.source]).toEqual({ select: { name: "자동수집" } })
     expect(props[QA_PROPS.kind]).toEqual({ select: { name: "동작 오류" } })
@@ -146,6 +147,7 @@ describe("createQaNotionClient", () => {
       ],
     })
     expect(props[QA_PROPS.status]).toEqual({ select: { name: "재발" } })
+    expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
   })
 
   it("bumpRow는 reopen이 아니면 상태를 건드리지 않는다", async () => {
@@ -161,6 +163,7 @@ describe("createQaNotionClient", () => {
 
     const props = lastCall().body.properties as Record<string, unknown>
     expect(props[QA_PROPS.status]).toBeUndefined()
+    expect(props[QA_PROPS.progress]).toBeUndefined()
   })
 
   it("429는 한 번 재시도한다", async () => {

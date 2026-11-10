@@ -4,8 +4,18 @@ import {
   buildListFilter,
   createDbProperties,
   extractNotionPageIds,
+  progressFor,
   toNotionProperty,
 } from "./lib.mjs"
+
+describe("progressFor", () => {
+  it("해결·무시면 Done, 그 외 상태는 Todo", () => {
+    expect(progressFor("해결")).toBe("Done")
+    expect(progressFor("무시")).toBe("Done")
+    expect(progressFor("신규")).toBe("Todo")
+    expect(progressFor("PR있음")).toBe("Todo")
+  })
+})
 
 describe("extractNotionPageIds", () => {
   it("notion.so 링크 안의 32자리 ID만 뽑는다 (커밋 SHA 등은 제외)", () => {
@@ -61,6 +71,7 @@ describe("createDbProperties", () => {
     for (const name of [
       "제목",
       "상태",
+      "진행",
       "출처",
       "종류",
       "심각도",
@@ -102,6 +113,11 @@ describe("createDbProperties", () => {
     expect(props["발생일"]).toEqual({ date: {} })
     expect(props["PR"]).toEqual({ url: {} })
     expect(props["스크린샷"]).toEqual({ files: {} })
+    expect(props["진행"].select.options).toEqual([
+      { name: "Todo", color: "red" },
+      { name: "Done", color: "green" },
+    ])
+    expect(toNotionProperty("진행", "Done")).toEqual({ select: { name: "Done" } })
     expect(props["종류"].select.options.map((o) => o.name)).toContain(
       "서버 요청 실패"
     )

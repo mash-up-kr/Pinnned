@@ -12,6 +12,7 @@ import {
   createNotionApi,
   extractNotionPageIds,
   flattenPage,
+  progressFor,
   toNotionProperty,
 } from "./qa-notion/lib.mjs"
 
@@ -84,6 +85,8 @@ const commands = {
   async update() {
     const pageId = positional[0] ?? fail("<pageId>가 필요하다")
     const values = JSON.parse(flags.json ?? fail("--json이 필요하다"))
+    // 상태를 바꾸면 표 뱃지(진행)도 따라간다
+    if (values["상태"]) values["진행"] = progressFor(values["상태"])
     const properties = Object.fromEntries(
       Object.entries(values).map(([name, value]) => [
         name,
@@ -101,7 +104,10 @@ const commands = {
     if (ids.length === 0) return console.log("노션 링크 없음")
     for (const id of ids) {
       await api.call("PATCH", `/pages/${id}`, {
-        properties: { 상태: toNotionProperty("상태", "해결") },
+        properties: {
+          상태: toNotionProperty("상태", "해결"),
+          진행: toNotionProperty("진행", "Done"),
+        },
       })
       console.log(`해결: ${id}`)
     }
