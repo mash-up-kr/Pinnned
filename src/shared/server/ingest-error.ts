@@ -1,5 +1,14 @@
 import { computeFingerprint } from "./fingerprint"
 import { createQaNotionClient } from "./qa-notion"
+import {
+  KIND_LABELS,
+  buildEnvironment,
+  buildRowBlocks,
+  buildRowTitle,
+  buildSymptom,
+  screenName,
+  severityOf,
+} from "./row-content"
 import { resolveStack } from "./stack-resolver"
 import type { ErrorReport, ErrorReportKind } from "@/shared/api/error-reporter"
 import type { QaNotionClient } from "./qa-notion"
@@ -67,26 +76,19 @@ function parseApi(value: unknown): ErrorReport["api"] {
   }
 }
 
-/** 노션 본문: 복원 스택 → 컴포넌트 스택 → 브레드크럼 → 환경 순. 사람이 위에서부터 읽는다. */
-function buildStackText(
+/** 표에서 한눈에 볼 "오류 위치": 복원된 최상위 프레임 → 없으면 압축 스택의 첫 프레임 → API 요청 이름 */
+function locationOf(
   report: ErrorReport,
-  stack: { text: string; resolved: boolean }
-): string {
-  const sections: Array<string> = []
-  if (report.stack)
-    sections.push((stack.resolved ? "" : "(소스맵 복원 실패)\n") + stack.text)
-  if (report.componentStack)
-    sections.push(`[컴포넌트]\n${report.componentStack}`)
-  if (report.api)
-    sections.push(
-      `[API] ${report.api.protocol} ${report.api.name} status=${report.api.status ?? "-"} code=${report.api.code ?? "-"}`
-    )
-  if (report.breadcrumbs.length)
-    sections.push(`[경로] ${report.breadcrumbs.join(" → ")}`)
-  sections.push(
-    `[환경] ${report.userAgent} / ${report.viewport} / online=${report.online} / auth=${report.authenticated} / v=${report.appVersion}`
-  )
-  return sections.join("\n\n")
+  stack: { topFrame?: string }
+): string | undefined {
+  if (stack.topFrame) return stack.topFrame
+  const firstFrame = report.stack
+    ?.split("\n")
+    .slice(1)
+    .map((line) => /((?:https?:\/\/|src\/)[^\s)]+)/.exec(line)?.[1])
+    .find(Boolean)
+  if (firstFrame) return firstFrame.replace(/^https?:\/\/[^/]+\//, "")
+  return report.api ? `${report.api.protocol} ${report.api.name}` : undefined
 }
 
 /**
@@ -113,20 +115,25 @@ export async function ingestErrorReport(
     await deps.notion.bumpRow(existing.pageId, {
       count: existing.count + 1,
       occurredAt: report.occurredAt,
-      appVersion: report.appVersion,
+      environment: buildEnvironment(report),
       reopen: existing.status === "해결",
     })
     return
   }
 
   await deps.notion.createRow({
-    title: `[${report.kind}] ${report.message.slice(0, 80)}`,
-    kind: report.kind,
-    route: report.routePattern,
+    title: buildRowTitle(report),
+    symptom: buildSymptom(report),
+    kindLabel: KIND_LABELS[report.kind],
+    severity: severityOf(report),
+    screen: report.routePattern
+      ? `${screenName(report.routePattern)} (${report.routePattern})`
+      : undefined,
     fingerprint,
-    appVersion: report.appVersion,
+    environment: buildEnvironment(report),
     occurredAt: report.occurredAt,
-    stackText: buildStackText(report, stack),
+    location: locationOf(report, stack),
+    children: buildRowBlocks(report, stack),
   })
 }
 

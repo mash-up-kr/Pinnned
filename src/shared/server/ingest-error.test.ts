@@ -39,7 +39,7 @@ function notionMock(
 const noMap = () => Promise.resolve(null)
 
 describe("ingestErrorReport", () => {
-  it("새 지문이면 행을 만들고 스택·브레드크럼·환경을 본문에 담는다", async () => {
+  it("새 지문이면 QA 리포트 형식의 행을 만든다", async () => {
     const notion = notionMock(null)
 
     await ingestErrorReport(REPORT, { notion, fetchMap: noMap })
@@ -47,14 +47,19 @@ describe("ingestErrorReport", () => {
     expect(notion.createRow).toHaveBeenCalledTimes(1)
     expect(notion.bumpRow).not.toHaveBeenCalled()
     const input = notion.createRow.mock.calls[0][0]
-    expect(input.title).toBe("[js-error] boom")
-    expect(input.kind).toBe("js-error")
-    expect(input.route).toBe("/signup")
+    expect(input.title).toBe("[회원가입] 동작 오류 – boom")
+    expect(input.symptom).toContain("회원가입 화면에서")
+    expect(input.kindLabel).toBe("동작 오류")
+    expect(input.severity).toBe("보통")
+    expect(input.screen).toBe("회원가입 (/signup)")
+    expect(input.environment).toBe("기타 · 기타 · 390x844 · v1234567")
     expect(input.fingerprint).toMatch(/^[0-9a-f]{16}$/)
-    expect(input.stackText).toContain("sample-abc.js:1:68")
-    expect(input.stackText).toContain("/ → /signup")
-    expect(input.stackText).toContain("UA")
-    expect(input.stackText).toContain("390x844")
+    expect(input.location).toBe("assets/sample-abc.js:1:68")
+    const body = JSON.stringify(input.children)
+    expect(body).toContain("sample-abc.js:1:68")
+    expect(body).toContain("랜딩 화면 진입")
+    expect(body).toContain("회원가입 화면으로 이동")
+    expect(body).toContain("390x844")
   })
 
   it("기존 행이면 횟수를 올린다", async () => {
@@ -66,7 +71,7 @@ describe("ingestErrorReport", () => {
     expect(notion.bumpRow).toHaveBeenCalledWith("p", {
       count: 4,
       occurredAt: REPORT.occurredAt,
-      appVersion: "1234567",
+      environment: "기타 · 기타 · 390x844 · v1234567",
       reopen: false,
     })
   })
@@ -88,8 +93,9 @@ describe("ingestErrorReport", () => {
     })
 
     const input = notion.createRow.mock.calls[0][0]
-    expect(input.stackText).toContain("(소스맵 복원 실패)")
-    expect(input.stackText).toContain("sample-abc.js:1:68")
+    const body = JSON.stringify(input.children)
+    expect(body).toContain("소스맵 복원 실패")
+    expect(body).toContain("sample-abc.js:1:68")
   })
 })
 
@@ -111,10 +117,8 @@ describe("ingestServerError", () => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
   })
-})
 
-describe("ingestServerError — 라우트 정규화", () => {
-  it("동적 세그먼트를 라우트 패턴으로 바꿔 기록한다", async () => {
+  it("동적 세그먼트를 라우트 패턴·화면 이름으로 바꿔 기록한다", async () => {
     const fetchSpy = vi.fn<typeof fetch>()
     fetchSpy
       .mockResolvedValueOnce(
@@ -131,8 +135,8 @@ describe("ingestServerError — 라우트 정규화", () => {
     )
 
     const createBody = JSON.parse(fetchSpy.mock.calls[1][1]?.body as string)
-    expect(createBody.properties["라우트"]).toEqual({
-      rich_text: [{ text: { content: "/i/$code" } }],
+    expect(createBody.properties["화면"]).toEqual({
+      rich_text: [{ text: { content: "초대 링크 (/i/$code)" } }],
     })
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()

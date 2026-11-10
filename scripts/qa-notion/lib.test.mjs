@@ -63,14 +63,17 @@ describe("createDbProperties", () => {
       "상태",
       "출처",
       "종류",
+      "심각도",
       "판정",
-      "라우트",
+      "화면",
+      "현상",
+      "환경",
+      "오류 위치",
       "발생 횟수",
       "첫 발생",
       "마지막 발생",
       "지문",
-      "앱 버전",
-      "복원 스택",
+      "스크린샷",
       "원인 그룹",
       "원인 요약",
       "FE 이슈",
@@ -78,7 +81,6 @@ describe("createDbProperties", () => {
       "PR",
       "재현 방법",
       "기대 동작",
-      "메모",
     ])
       expect(props, name).toHaveProperty(name)
   })
@@ -101,6 +103,18 @@ describe("createDbProperties", () => {
     expect(props["발생 횟수"]).toEqual({ number: {} })
     expect(props["첫 발생"]).toEqual({ date: {} })
     expect(props["PR"]).toEqual({ url: {} })
+    expect(props["스크린샷"]).toEqual({ files: {} })
+    expect(props["종류"].select.options.map((o) => o.name)).toContain(
+      "서버 요청 실패"
+    )
+    expect(props["심각도"].select.options.map((o) => o.name)).toEqual([
+      "치명",
+      "높음",
+      "보통",
+      "낮음",
+    ])
+    expect(props).not.toHaveProperty("메모")
+    expect(props).not.toHaveProperty("라우트")
   })
 })
 

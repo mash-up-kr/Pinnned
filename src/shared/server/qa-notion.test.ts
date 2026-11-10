@@ -19,6 +19,12 @@ function lastCall() {
   }
 }
 
+const BODY_BLOCK = {
+  object: "block",
+  type: "paragraph",
+  paragraph: { rich_text: [{ text: { content: "본문" } }] },
+}
+
 describe("createQaNotionClient", () => {
   afterEach(() => fetchMock.mockReset())
 
@@ -59,18 +65,21 @@ describe("createQaNotionClient", () => {
     expect(await client.findByFingerprint("none")).toBeNull()
   })
 
-  it("createRow는 신규·자동수집·횟수 1로 페이지를 만든다", async () => {
+  it("createRow는 QA 리포트 속성과 본문 블록으로 페이지를 만든다", async () => {
     fetchMock.mockResolvedValueOnce(json(200, { id: "new" }))
     const client = createQaNotionClient(ENV, fetchMock)
 
     await client.createRow({
-      title: "[js-error] boom",
-      kind: "js-error",
-      route: "/signup",
+      title: "[회원가입] 동작 오류 – boom",
+      symptom: "회원가입 화면에서 오류가 남",
+      kindLabel: "동작 오류",
+      severity: "보통",
+      screen: "회원가입 (/signup)",
       fingerprint: "abc",
-      appVersion: "1234567",
+      environment: "iPhone · Safari · 390x844 · v1234567",
       occurredAt: "2026-11-10T01:00:00.000Z",
-      stackText: "Error: boom\n    at src/x.tsx:1:2",
+      location: "src/x.tsx:1",
+      children: [BODY_BLOCK],
     })
 
     const call = lastCall()
@@ -78,13 +87,17 @@ describe("createQaNotionClient", () => {
     expect(call.body.parent).toEqual({ database_id: "db-1" })
     const props = call.body.properties as Record<string, unknown>
     expect(props[QA_PROPS.title]).toEqual({
-      title: [{ text: { content: "[js-error] boom" } }],
+      title: [{ text: { content: "[회원가입] 동작 오류 – boom" } }],
+    })
+    expect(props[QA_PROPS.symptom]).toEqual({
+      rich_text: [{ text: { content: "회원가입 화면에서 오류가 남" } }],
     })
     expect(props[QA_PROPS.status]).toEqual({ select: { name: "신규" } })
+    expect(props[QA_PROPS.severity]).toEqual({ select: { name: "보통" } })
     expect(props[QA_PROPS.source]).toEqual({ select: { name: "자동수집" } })
-    expect(props[QA_PROPS.kind]).toEqual({ select: { name: "js-error" } })
-    expect(props[QA_PROPS.route]).toEqual({
-      rich_text: [{ text: { content: "/signup" } }],
+    expect(props[QA_PROPS.kind]).toEqual({ select: { name: "동작 오류" } })
+    expect(props[QA_PROPS.screen]).toEqual({
+      rich_text: [{ text: { content: "회원가입 (/signup)" } }],
     })
     expect(props[QA_PROPS.count]).toEqual({ number: 1 })
     expect(props[QA_PROPS.firstSeen]).toEqual({
@@ -96,54 +109,25 @@ describe("createQaNotionClient", () => {
     expect(props[QA_PROPS.fingerprint]).toEqual({
       rich_text: [{ text: { content: "abc" } }],
     })
-    expect(props[QA_PROPS.appVersion]).toEqual({
-      rich_text: [{ text: { content: "1234567" } }],
+    expect(props[QA_PROPS.environment]).toEqual({
+      rich_text: [
+        { text: { content: "iPhone · Safari · 390x844 · v1234567" } },
+      ],
     })
-    expect(props[QA_PROPS.stack]).toEqual({
-      rich_text: [{ text: { content: "Error: boom\n    at src/x.tsx:1:2" } }],
+    expect(props[QA_PROPS.location]).toEqual({
+      rich_text: [{ text: { content: "src/x.tsx:1" } }],
     })
-    expect(call.body.children).toBeUndefined()
+    expect(call.body.children).toEqual([BODY_BLOCK])
   })
 
-  it("createRow는 2,000자가 넘는 스택을 속성엔 잘라 넣고 본문 코드 블록에 전체를 둔다", async () => {
-    fetchMock.mockResolvedValueOnce(json(200, { id: "new" }))
-    const client = createQaNotionClient(ENV, fetchMock)
-    const long = "x".repeat(4500)
-
-    await client.createRow({
-      title: "t",
-      kind: "js-error",
-      fingerprint: "f",
-      appVersion: "v",
-      occurredAt: "2026-11-10T00:00:00.000Z",
-      stackText: long,
-    })
-
-    const call = lastCall()
-    const props = call.body.properties as Record<
-      string,
-      { rich_text: Array<{ text: { content: string } }> }
-    >
-    expect(props[QA_PROPS.stack].rich_text[0].text.content).toHaveLength(2000)
-    const children = call.body.children as Array<{
-      type: string
-      code: { rich_text: Array<{ text: { content: string } }> }
-    }>
-    expect(children[0].type).toBe("code")
-    // 코드 블록 rich_text 조각도 2,000자 제한 — 전체 텍스트가 나뉘어 들어간다
-    expect(children[0].code.rich_text.map((r) => r.text.content).join("")).toBe(
-      long
-    )
-  })
-
-  it("bumpRow는 횟수·마지막 발생·버전을 갱신하고 reopen이면 상태를 재발로 바꾼다", async () => {
+  it("bumpRow는 횟수·마지막 발생·환경을 갱신하고 reopen이면 상태를 재발로 바꾼다", async () => {
     fetchMock.mockResolvedValueOnce(json(200, { id: "page-1" }))
     const client = createQaNotionClient(ENV, fetchMock)
 
     await client.bumpRow("page-1", {
       count: 4,
       occurredAt: "2026-11-10T02:00:00.000Z",
-      appVersion: "abcdef0",
+      environment: "Android · Chrome · 412x915 · vabcdef0",
       reopen: true,
     })
 
@@ -155,8 +139,10 @@ describe("createQaNotionClient", () => {
     expect(props[QA_PROPS.lastSeen]).toEqual({
       date: { start: "2026-11-10T02:00:00.000Z" },
     })
-    expect(props[QA_PROPS.appVersion]).toEqual({
-      rich_text: [{ text: { content: "abcdef0" } }],
+    expect(props[QA_PROPS.environment]).toEqual({
+      rich_text: [
+        { text: { content: "Android · Chrome · 412x915 · vabcdef0" } },
+      ],
     })
     expect(props[QA_PROPS.status]).toEqual({ select: { name: "재발" } })
   })
@@ -168,7 +154,7 @@ describe("createQaNotionClient", () => {
     await client.bumpRow("page-1", {
       count: 2,
       occurredAt: "2026-11-10T02:00:00.000Z",
-      appVersion: "v",
+      environment: "v",
       reopen: false,
     })
 

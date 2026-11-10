@@ -18,27 +18,29 @@ export const STATUS_OPTIONS = [
 const SELECT_PROPS = {
   상태: STATUS_OPTIONS,
   출처: ["자동수집", "수동제보"],
+  // src/shared/server/row-content.ts의 KIND_LABELS와 같아야 한다
   종류: [
-    "js-error",
-    "promise-rejection",
-    "render-error",
-    "ssr-error",
-    "api-failure",
+    "동작 오류",
+    "비동기 오류",
+    "화면 표시 오류",
+    "페이지 로드 실패",
+    "서버 요청 실패",
     "기타",
   ],
+  심각도: ["치명", "높음", "보통", "낮음"],
   판정: ["FE", "BE", "FE+BE", "보류", "노이즈"],
 }
 const URL_PROPS = new Set(["FE 이슈", "BE 이슈", "PR"])
 const TEXT_PROPS = [
-  "라우트",
+  "화면",
+  "현상",
+  "환경",
+  "오류 위치",
   "지문",
-  "앱 버전",
-  "복원 스택",
   "원인 그룹",
   "원인 요약",
   "재현 방법",
   "기대 동작",
-  "메모",
 ]
 
 /** 스펙 5.3 그대로. `create-db`가 이걸로 DB를 만든다. */
@@ -49,6 +51,7 @@ export function createDbProperties() {
   for (const name of TEXT_PROPS) props[name] = { rich_text: {} }
   for (const name of URL_PROPS) props[name] = { url: {} }
   props["발생 횟수"] = { number: {} }
+  props["스크린샷"] = { files: {} }
   props["첫 발생"] = { date: {} }
   props["마지막 발생"] = { date: {} }
   return props
@@ -101,23 +104,25 @@ export function flattenPage(page, stackFromBody = "") {
   const text = (name) => plain(p[name]?.rich_text)
   const select = (name) => p[name]?.select?.name ?? ""
   const date = (name) => p[name]?.date?.start ?? ""
-  const stackProp = text("복원 스택")
   return {
     pageId: page.id.replaceAll("-", ""),
     url: page.url,
     title: plain(p["제목"]?.title),
+    symptom: text("현상"),
+    location: text("오류 위치"),
     status: select("상태"),
+    severity: select("심각도"),
     source: select("출처"),
     kind: select("종류"),
     verdict: select("판정"),
-    route: text("라우트"),
+    screen: text("화면"),
     count: p["발생 횟수"]?.number ?? 0,
     fingerprint: text("지문"),
-    appVersion: text("앱 버전"),
+    environment: text("환경"),
     firstSeen: date("첫 발생"),
     lastSeen: date("마지막 발생"),
-    // 2,000자 넘는 스택은 본문 코드 블록에 전체가 있다
-    stackText: stackFromBody || stackProp,
+    // 스택·API·환경은 페이지 본문 "개발자용 기술 정보" 토글 안 코드 블록에 있다
+    stackText: stackFromBody,
     causeGroup: text("원인 그룹"),
     causeSummary: text("원인 요약"),
     feIssue: p["FE 이슈"]?.url ?? "",
@@ -126,7 +131,6 @@ export function flattenPage(page, stackFromBody = "") {
     manual: select("출처") === "수동제보",
     repro: text("재현 방법"),
     expected: text("기대 동작"),
-    memo: text("메모"),
   }
 }
 
@@ -154,7 +158,9 @@ export function createNotionApi(token, fetchImpl = fetch) {
         continue
       }
       if (!res.ok)
-        throw new Error(`Notion ${method} ${path} → ${res.status} ${await res.text()}`)
+        throw new Error(
+          `Notion ${method} ${path} → ${res.status} ${await res.text()}`
+        )
       return res.json()
     }
     throw new Error(`Notion ${method} ${path} → 429 (재시도 실패)`)

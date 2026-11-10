@@ -11,13 +11,15 @@ export const QA_PROPS = {
   status: "상태",
   source: "출처",
   kind: "종류",
-  route: "라우트",
+  screen: "화면",
+  severity: "심각도",
   count: "발생 횟수",
   firstSeen: "첫 발생",
   lastSeen: "마지막 발생",
   fingerprint: "지문",
-  appVersion: "앱 버전",
-  stack: "복원 스택",
+  environment: "환경",
+  symptom: "현상",
+  location: "오류 위치",
 } as const
 
 export interface QaNotionClient {
@@ -26,19 +28,28 @@ export interface QaNotionClient {
   ) => Promise<{ pageId: string; count: number; status: string } | null>
   createRow: (input: {
     title: string
-    kind: string
-    route?: string
+    /** 현상(실제 결과) — 사용자 관점 한 문장 */
+    symptom: string
+    /** 노션 `종류` 옵션 이름 (KIND_LABELS) */
+    kindLabel: string
+    severity: string
+    /** "팟 상세 (/my-page/pot/$potId)" */
+    screen?: string
     fingerprint: string
-    appVersion: string
+    /** "iPhone · Safari · 390x844 · v1234567" */
+    environment: string
     occurredAt: string
-    stackText: string
+    /** 복원된 최상위 프레임 "src/x.tsx:42" 또는 API 요청 이름 */
+    location?: string
+    /** 페이지 본문 블록 (row-content.ts가 만든다) */
+    children: Array<unknown>
   }) => Promise<void>
   bumpRow: (
     pageId: string,
     input: {
       count: number
       occurredAt: string
-      appVersion: string
+      environment: string
       /** true면 상태를 "재발"로 바꾼다 (해결된 행에 다시 들어온 경우) */
       reopen: boolean
     }
@@ -50,13 +61,6 @@ const text = (content: string) => ({
 })
 const select = (name: string) => ({ select: { name } })
 const date = (start: string) => ({ date: { start } })
-
-function chunk(content: string): Array<{ text: { content: string } }> {
-  const parts: Array<{ text: { content: string } }> = []
-  for (let i = 0; i < content.length; i += RICH_TEXT_LIMIT)
-    parts.push({ text: { content: content.slice(i, i + RICH_TEXT_LIMIT) } })
-  return parts
-}
 
 interface QueryResult {
   results: Array<{
@@ -124,38 +128,30 @@ export function createQaNotionClient(
         [QA_PROPS.title]: { title: [{ text: { content: input.title } }] },
         [QA_PROPS.status]: select("신규"),
         [QA_PROPS.source]: select("자동수집"),
-        [QA_PROPS.kind]: select(input.kind),
+        [QA_PROPS.kind]: select(input.kindLabel),
+        [QA_PROPS.severity]: select(input.severity),
         [QA_PROPS.count]: { number: 1 },
         [QA_PROPS.firstSeen]: date(input.occurredAt),
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.fingerprint]: text(input.fingerprint),
-        [QA_PROPS.appVersion]: text(input.appVersion),
-        [QA_PROPS.stack]: text(input.stackText),
+        [QA_PROPS.environment]: text(input.environment),
+        [QA_PROPS.symptom]: text(input.symptom),
       }
-      if (input.route) properties[QA_PROPS.route] = text(input.route)
+      if (input.screen) properties[QA_PROPS.screen] = text(input.screen)
+      if (input.location) properties[QA_PROPS.location] = text(input.location)
 
-      const body: Record<string, unknown> = {
+      await call("POST", "/pages", {
         parent: { database_id: env.databaseId },
         properties,
-      }
-      // 속성은 2,000자까지만 — 긴 스택은 페이지 본문 코드 블록에 전체를 둔다
-      if (input.stackText.length > RICH_TEXT_LIMIT) {
-        body.children = [
-          {
-            object: "block",
-            type: "code",
-            code: { language: "plain text", rich_text: chunk(input.stackText) },
-          },
-        ]
-      }
-      await call("POST", "/pages", body)
+        children: input.children,
+      })
     },
 
     async bumpRow(pageId, input) {
       const properties: Record<string, unknown> = {
         [QA_PROPS.count]: { number: input.count },
         [QA_PROPS.lastSeen]: date(input.occurredAt),
-        [QA_PROPS.appVersion]: text(input.appVersion),
+        [QA_PROPS.environment]: text(input.environment),
       }
       if (input.reopen) properties[QA_PROPS.status] = select("재발")
       await call("PATCH", `/pages/${pageId}`, { properties })
