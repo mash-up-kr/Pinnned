@@ -8,7 +8,6 @@ import { ZoomInGuide } from "./ZoomInGuide"
 
 import type { ZoomStage } from "@/widgets/travel-map-google"
 import { AppHeader } from "@/widgets/app-header"
-import { BottomNav } from "@/widgets/bottom-nav"
 import { PotSelector } from "@/widgets/pot-dropdown"
 import { TravelMapGoogle } from "@/widgets/travel-map-google"
 import { AppSplash } from "@/shared/ui/app-splash"
@@ -33,10 +32,12 @@ import {
 } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
 import { trackEvent } from "@/shared/api/analytics"
+import { useAppBottomNav } from "@/shared/ui/app-bottom-nav-context"
 
 function MapGooglePageContent() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { setMapState, recenterSignal } = useAppBottomNav()
   const searchParams =
     typeof window === "undefined"
       ? null
@@ -87,9 +88,19 @@ function MapGooglePageContent() {
   const decorating = useRecordStore((s) => s.region !== null)
   const [detailRegion, setDetailRegion] = React.useState<string | null>(null)
   const trackedDetailRegion = React.useRef<string | null>(null)
-  const [canOpenAlbum, setCanOpenAlbum] = React.useState(false)
   const [mapZoomStage, setMapZoomStage] = React.useState<ZoomStage>(0)
   const showMapChrome = !decorating && detailRegion === null
+  React.useEffect(() => {
+    setMapState((state) => ({
+      ...state,
+      visible: ready && hasPot && showMapChrome,
+    }))
+  }, [hasPot, ready, setMapState, showMapChrome])
+  React.useEffect(
+    () => () => setMapState((state) => ({ ...state, visible: true })),
+    [setMapState]
+  )
+
   // 2.5단계(인기지역 [+] 선노출)부터 상세 취급 — 상단이 뒤로가기로 바뀐다
   const showPersistentMapActions = showMapChrome && mapZoomStage < 2.5
 
@@ -104,7 +115,6 @@ function MapGooglePageContent() {
   >(null)
   const [mapReady, setMapReady] = React.useState(false)
   const [zoomToDetailSignal, setZoomToDetailSignal] = React.useState(0)
-  const [recenterKoreaSignal, setRecenterKoreaSignal] = React.useState(0)
   const [zoomOutToCitySignal, setZoomOutToCitySignal] = React.useState(0)
   const showZoomGuide = shouldShowZoomGuide({
     hasPersistentActions: showPersistentMapActions,
@@ -118,8 +128,6 @@ function MapGooglePageContent() {
     setZoomGuideDismissedPotId(currentPotId)
     setZoomToDetailSignal((n) => n + 1)
   }
-
-  const openAlbum = () => router.navigate({ to: "/travel-album" })
 
   // 팟 판정 전(persist 복원 + myParties 응답)과 pot-start 리다이렉트 대기 구간 —
   // 빈 화면 대신 스플래시로 채운다
@@ -141,7 +149,9 @@ function MapGooglePageContent() {
       <main className="relative flex-1">
         <TravelMapGoogle
           className="absolute inset-0"
-          onAlbumAvailabilityChange={setCanOpenAlbum}
+          onAlbumAvailabilityChange={(available) =>
+            setMapState((state) => ({ ...state, albumDisabled: !available }))
+          }
           onRegionDetailChange={(region) => {
             setDetailRegion(region)
             if (region && trackedDetailRegion.current !== region) {
@@ -160,7 +170,7 @@ function MapGooglePageContent() {
             showZoomGuide || zoomGuideDismissedPotId === currentPotId
           }
           zoomToDetailSignal={zoomToDetailSignal}
-          recenterKoreaSignal={recenterKoreaSignal}
+          recenterKoreaSignal={recenterSignal}
           zoomOutToCitySignal={zoomOutToCitySignal}
         />
 
@@ -211,18 +221,6 @@ function MapGooglePageContent() {
                 <ZoomInGuide className="z-10" onClick={zoomToDetail} />
               </>
             ) : null}
-
-            <div className="pointer-events-none absolute inset-x-0 bottom-[max(env(safe-area-inset-bottom),34px)] z-10">
-              {/* 하단 내비 — 시안(3241-70879) 기준 바닥에서 34px(홈 인디케이터 영역) 띄움.
-                  줌 3단계에서도 유지한다 (2차 UT to-be: 하단 탭바는 전 단계 노출) */}
-              <BottomNav
-                className="pointer-events-auto"
-                albumDisabled={!canOpenAlbum}
-                onAlbumClick={openAlbum}
-                onMyPageClick={() => router.navigate({ to: "/my-page" })}
-                onGlobeClick={() => setRecenterKoreaSignal((n) => n + 1)}
-              />
-            </div>
           </>
         ) : null}
       </main>

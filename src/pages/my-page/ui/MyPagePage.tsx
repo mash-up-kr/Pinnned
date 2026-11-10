@@ -15,7 +15,6 @@ import { clearTokens, getRefreshToken } from "@/shared/api/token-storage"
 import { landingToastClassName } from "@/shared/lib/landing-toast"
 import {
   removeSeedPhotosByUploader,
-  useAllPhotos,
   usePhotoUploadStore,
 } from "@/entities/photo"
 import { useRegionColorStore } from "@/entities/region"
@@ -24,7 +23,6 @@ import { useMe, useSessionStore, withdrawAccount } from "@/entities/user"
 import { RequireAuth, logoutSession } from "@/features/auth"
 import { resetMapTipsSeen, resetOnboardingSeen } from "@/features/onboarding"
 import { resetCompletionTips } from "@/widgets/travel-map-google"
-import { BottomNav } from "@/widgets/bottom-nav"
 import { APP_VERSION } from "@/shared/config/app"
 import iconAlertDangerSrc from "@/shared/assets/icon-alert-danger.svg"
 import iconChevronRightSrc from "@/shared/assets/icon-chevron-right.svg"
@@ -162,9 +160,6 @@ function MyPageContent() {
   const logout = useSessionStore((s) => s.logout)
   const selectPot = usePotStore((s) => s.selectPot)
   const resetPots = usePotStore((s) => s.resetPots)
-  const currentPotId = usePotStore((s) => s.currentPotId)
-  // 지도 화면과 동일 조건 — 여행 기록이 하나도 없으면 앨범 진입 불가 (MapGooglePage canOpenAlbum)
-  const canOpenAlbum = useAllPhotos(currentPotId, localUser?.id).length > 0
   const clearRegionFills = useRegionColorStore((s) => s.clearAll)
   const removePhotosByUploader = usePhotoUploadStore(
     (s) => s.removePhotosByUploader
@@ -358,17 +353,6 @@ function MyPageContent() {
           </section>
         </div>
       </main>
-
-      {/* 하단 내비 — 지도·앨범 화면과 동일하게 바닥에서 34px(홈 인디케이터 영역) 띄움 */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),34px)] z-10">
-        <BottomNav
-          className="pointer-events-auto"
-          active="my-page"
-          albumDisabled={!canOpenAlbum}
-          onAlbumClick={() => router.navigate({ to: "/travel-album" })}
-          onGlobeClick={() => router.navigate({ to: "/map-google" })}
-        />
-      </div>
     </MobileLayout>
   )
 }
