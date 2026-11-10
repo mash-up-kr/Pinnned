@@ -42,6 +42,7 @@ export function createDbProperties() {
   for (const name of URL_PROPS) props[name] = { url: {} }
   props["발생 횟수"] = { number: {} }
   props["스크린샷"] = { files: {} }
+  props["발생일"] = { date: {} }
   props["마지막 발생"] = { date: {} }
   return props
 }
@@ -108,6 +109,7 @@ export function flattenPage(page, stackFromBody = "") {
     count: p["발생 횟수"]?.number ?? 0,
     fingerprint: text("지문"),
     environment: text("환경"),
+    firstSeen: date("발생일"),
     lastSeen: date("마지막 발생"),
     // 스택·API·환경은 페이지 본문 "개발자용 기술 정보" 토글 안 코드 블록에 있다
     stackText: stackFromBody,

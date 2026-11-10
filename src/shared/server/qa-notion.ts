@@ -14,6 +14,8 @@ export const QA_PROPS = {
   screen: "화면",
   severity: "심각도",
   count: "발생 횟수",
+  /** 첫 발생 날짜. 생성 시 한 번만 기록 */
+  firstSeen: "발생일",
   lastSeen: "마지막 발생",
   fingerprint: "지문",
   environment: "환경",
@@ -130,6 +132,7 @@ export function createQaNotionClient(
         [QA_PROPS.kind]: select(input.kindLabel),
         [QA_PROPS.severity]: select(input.severity),
         [QA_PROPS.count]: { number: 1 },
+        [QA_PROPS.firstSeen]: date(input.occurredAt),
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.fingerprint]: text(input.fingerprint),
         [QA_PROPS.environment]: text(input.environment),

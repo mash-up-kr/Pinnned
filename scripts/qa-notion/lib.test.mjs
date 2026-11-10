@@ -70,6 +70,7 @@ describe("createDbProperties", () => {
       "환경",
       "오류 위치",
       "발생 횟수",
+      "발생일",
       "마지막 발생",
       "지문",
       "스크린샷",
@@ -98,6 +99,7 @@ describe("createDbProperties", () => {
     expect(props["제목"]).toEqual({ title: {} })
     expect(props["발생 횟수"]).toEqual({ number: {} })
     expect(props["마지막 발생"]).toEqual({ date: {} })
+    expect(props["발생일"]).toEqual({ date: {} })
     expect(props["PR"]).toEqual({ url: {} })
     expect(props["스크린샷"]).toEqual({ files: {} })
     expect(props["종류"].select.options.map((o) => o.name)).toContain(
