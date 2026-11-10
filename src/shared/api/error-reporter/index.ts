@@ -12,3 +12,4 @@ export {
   reportGraphQLResponse,
   reportRestFailure,
 } from "./api-failure"
+export { CLARITY_TAG_KEY, clarityErrorTag } from "./clarity"

@@ -1,5 +1,6 @@
 // 노션 QA 행의 제목·현상·재현 절차·본문 — 현업 QA 리포트 형식. 개발자가 아닌 팀원도 바로 읽을 수 있게 쓴다.
 import type { ErrorReport, ErrorReportKind } from "@/shared/api/error-reporter"
+import { CLARITY_TAG_KEY, clarityErrorTag } from "@/shared/api/error-reporter"
 
 const RICH_TEXT_LIMIT = 2000
 
@@ -258,6 +259,9 @@ export function buildRowBlocks(
   developer.push(
     paragraph(
       `원본 메시지: ${report.name ? `${report.name}: ` : ""}${report.message}`
+    ),
+    paragraph(
+      `Clarity 녹화: 사용자 지정 태그 ${CLARITY_TAG_KEY} = ${clarityErrorTag(report)} 로 세션 검색`
     ),
     paragraph(`User-Agent: ${report.userAgent}`),
     paragraph(

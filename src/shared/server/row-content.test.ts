@@ -211,6 +211,12 @@ describe("buildRowBlocks — QA 리포트 본문", () => {
     expect(JSON.stringify(unresolved.at(-1))).toContain("소스맵 복원 실패")
   })
 
+  it("개발자 참고에 Clarity 녹화 검색 태그를 적는다", () => {
+    expect(JSON.stringify(blocks.at(-1))).toContain(
+      "Clarity 녹화: 사용자 지정 태그 error = js-error: Cannot read properties of undefined (reading 'id')"
+    )
+  })
+
   it("API 실패는 요청 정보를 개발자 참고에 적는다", () => {
     const apiBlocks = buildRowBlocks(API, { text: "", resolved: false })
     expect(JSON.stringify(apiBlocks.at(-1))).toContain(

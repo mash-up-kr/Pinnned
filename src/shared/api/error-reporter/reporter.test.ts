@@ -154,6 +154,22 @@ describe("error reporter", () => {
     })
   })
 
+  it("Clarity가 있으면 세션에 error 태그를 달고 녹화를 우선 저장시킨다", () => {
+    const clarityMock = vi.fn()
+    vi.stubGlobal("clarity", clarityMock)
+    reportError(new Error("tagged"))
+
+    expect(clarityMock).toHaveBeenCalledWith("set", "error", "js-error: tagged")
+    expect(clarityMock).toHaveBeenCalledWith("upgrade", "error")
+  })
+
+  it("Clarity가 없어도 전송은 정상이다", () => {
+    vi.stubGlobal("clarity", undefined)
+    reportError(new Error("no clarity"))
+
+    expect(beaconMock).toHaveBeenCalledTimes(1)
+  })
+
   it("render-error와 componentStack을 그대로 싣는다", async () => {
     reportError(new Error("render"), {
       kind: "render-error",

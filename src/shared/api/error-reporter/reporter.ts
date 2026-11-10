@@ -1,3 +1,4 @@
+import { CLARITY_TAG_KEY, clarityErrorTag } from "./clarity"
 import { shouldIgnoreError } from "./filter"
 
 export type ErrorReportKind =
@@ -111,7 +112,22 @@ function enqueue(partial: Omit<ErrorReport, keyof BaseFields>): void {
   state.sentKeys.add(key)
   state.sentCount += 1
 
+  tagClaritySession(partial)
   send({ ...partial, ...baseFields() })
+}
+
+declare global {
+  interface Window {
+    clarity?: (...args: Array<unknown>) => void
+  }
+}
+
+/** Clarity 녹화에 error 태그를 달고 이 세션을 우선 저장시킨다 (무료 플랜은 녹화를 샘플링한다). */
+function tagClaritySession(report: Pick<ErrorReport, "kind" | "message">) {
+  const clarity = window.clarity
+  if (typeof clarity !== "function") return
+  clarity("set", CLARITY_TAG_KEY, clarityErrorTag(report))
+  clarity("upgrade", CLARITY_TAG_KEY)
 }
 
 type BaseFields = Pick<
