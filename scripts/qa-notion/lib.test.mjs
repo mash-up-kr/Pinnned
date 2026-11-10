@@ -4,18 +4,9 @@ import {
   buildListFilter,
   createDbProperties,
   extractNotionPageIds,
-  progressFor,
+  flattenPage,
   toNotionProperty,
 } from "./lib.mjs"
-
-describe("progressFor", () => {
-  it("해결·무시면 Done, 그 외 상태는 Todo", () => {
-    expect(progressFor("해결")).toBe("Done")
-    expect(progressFor("무시")).toBe("Done")
-    expect(progressFor("신규")).toBe("Todo")
-    expect(progressFor("PR있음")).toBe("Todo")
-  })
-})
 
 describe("extractNotionPageIds", () => {
   it("notion.so 링크 안의 32자리 ID만 뽑는다 (커밋 SHA 등은 제외)", () => {
@@ -44,10 +35,12 @@ describe("extractNotionPageIds", () => {
 
 describe("toNotionProperty", () => {
   it("select 속성", () => {
-    expect(toNotionProperty("상태", "PR있음")).toEqual({
-      select: { name: "PR있음" },
+    expect(toNotionProperty("진행", "Done")).toEqual({
+      select: { name: "Done" },
     })
-    expect(toNotionProperty("판정", "FE")).toEqual({ select: { name: "FE" } })
+    expect(toNotionProperty("심각도", "높음")).toEqual({
+      select: { name: "높음" },
+    })
   })
 
   it("url 속성", () => {
@@ -67,67 +60,35 @@ describe("toNotionProperty", () => {
 describe("createDbProperties", () => {
   const props = createDbProperties()
 
-  it("스펙 5.3의 속성이 전부 있다", () => {
+  it("속성은 16개, 표에 보이는 8개가 전부 있다", () => {
+    expect(Object.keys(props)).toHaveLength(16)
     for (const name of [
       "제목",
-      "상태",
       "진행",
-      "출처",
-      "종류",
+      "발생일",
       "심각도",
-      "판정",
+      "종류",
       "화면",
       "현상",
-      "환경",
-      "오류 위치",
       "발생 횟수",
-      "발생일",
-      "마지막 발생",
-      "지문",
-      "스크린샷",
+      "환경",
       "원인 요약",
       "FE 이슈",
       "BE 이슈",
       "PR",
+      "스크린샷",
+      "마지막 발생",
+      "지문",
     ])
       expect(props, name).toHaveProperty(name)
   })
 
-  it("상태 select 옵션은 정확히 8개", () => {
-    expect(props["상태"].select.options.map((o) => o.name)).toEqual([
-      "신규",
-      "분석중",
-      "보류",
-      "이슈생성",
-      "PR있음",
-      "해결",
-      "재발",
-      "무시",
-    ])
-  })
-
-  it("제목은 title, 발생 횟수는 number, 날짜는 date, 링크는 url", () => {
-    expect(props["제목"]).toEqual({ title: {} })
-    expect(props["발생 횟수"]).toEqual({ number: {} })
-    expect(props["마지막 발생"]).toEqual({ date: {} })
-    expect(props["발생일"]).toEqual({ date: {} })
-    expect(props["PR"]).toEqual({ url: {} })
-    expect(props["스크린샷"]).toEqual({ files: {} })
-    expect(props["진행"].select.options).toEqual([
-      { name: "Todo", color: "red" },
-      { name: "Done", color: "green" },
-    ])
-    expect(toNotionProperty("진행", "Done")).toEqual({ select: { name: "Done" } })
-    expect(props["종류"].select.options.map((o) => o.name)).toContain(
-      "서버 요청 실패"
-    )
-    expect(props["심각도"].select.options.map((o) => o.name)).toEqual([
-      "치명",
-      "높음",
-      "보통",
-      "낮음",
-    ])
+  it("없앤 속성은 다시 생기지 않는다", () => {
     for (const removed of [
+      "상태",
+      "출처",
+      "판정",
+      "오류 위치",
       "메모",
       "라우트",
       "첫 발생",
@@ -137,32 +98,88 @@ describe("createDbProperties", () => {
     ])
       expect(props).not.toHaveProperty(removed)
   })
+
+  it("진행은 Todo(빨강)·Done(초록) 둘, 심각도 4개, 종류 라벨 포함", () => {
+    expect(props["진행"].select.options).toEqual([
+      { name: "Todo", color: "red" },
+      { name: "Done", color: "green" },
+    ])
+    expect(props["심각도"].select.options.map((o) => o.name)).toEqual([
+      "치명",
+      "높음",
+      "보통",
+      "낮음",
+    ])
+    expect(props["종류"].select.options.map((o) => o.name)).toContain(
+      "서버 요청 실패"
+    )
+  })
+
+  it("타입: title / number / date / url / files", () => {
+    expect(props["제목"]).toEqual({ title: {} })
+    expect(props["발생 횟수"]).toEqual({ number: {} })
+    expect(props["발생일"]).toEqual({ date: {} })
+    expect(props["마지막 발생"]).toEqual({ date: {} })
+    expect(props["PR"]).toEqual({ url: {} })
+    expect(props["스크린샷"]).toEqual({ files: {} })
+  })
 })
 
 describe("buildListFilter", () => {
-  it("기간 내 마지막 발생(해결·무시 제외) 또는 상태 신규 — 노션 중첩 2단계 제한 안", () => {
+  it("진행=Todo 이면서 (기간 내 발생 OR 분석 전), until은 배타", () => {
     const filter = buildListFilter(
       "2026-11-03T00:00:00+09:00",
       "2026-11-10T00:00:00+09:00"
     )
     expect(filter).toEqual({
-      or: [
+      and: [
+        { property: "진행", select: { equals: "Todo" } },
         {
-          and: [
-            { property: "상태", select: { does_not_equal: "해결" } },
-            { property: "상태", select: { does_not_equal: "무시" } },
+          or: [
             {
               property: "마지막 발생",
               date: { on_or_after: "2026-11-03T00:00:00+09:00" },
             },
-            {
-              property: "마지막 발생",
-              date: { before: "2026-11-10T00:00:00+09:00" },
-            },
+            { property: "원인 요약", rich_text: { is_empty: true } },
           ],
         },
-        { property: "상태", select: { equals: "신규" } },
+        {
+          property: "마지막 발생",
+          date: { before: "2026-11-10T00:00:00+09:00" },
+        },
       ],
     })
+  })
+})
+
+describe("flattenPage", () => {
+  it("지문이 없으면 수동 제보로 본다", () => {
+    const base = {
+      id: "aaaa-bbbb",
+      url: "https://notion.so/x",
+      properties: {
+        제목: { title: [{ plain_text: "[지도] 서버 요청 실패" }] },
+        진행: { select: { name: "Todo" } },
+        "발생 횟수": { number: 2 },
+        지문: { rich_text: [] },
+      },
+    }
+    expect(flattenPage(base, "본문")).toMatchObject({
+      pageId: "aaaabbbb",
+      title: "[지도] 서버 요청 실패",
+      progress: "Todo",
+      count: 2,
+      manual: true,
+      bodyText: "본문",
+    })
+    expect(
+      flattenPage({
+        ...base,
+        properties: {
+          ...base.properties,
+          지문: { rich_text: [{ plain_text: "ab" }] },
+        },
+      }).manual
+    ).toBe(false)
   })
 })

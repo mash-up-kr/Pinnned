@@ -25,6 +25,11 @@ const BODY_BLOCK = {
   paragraph: { rich_text: [{ text: { content: "본문" } }] },
 }
 
+// 날짜는 한국 시간으로 표시되도록 KST 로컬 시각 + time_zone. 01:00Z = 10:00 KST
+const KST_10 = {
+  date: { start: "2026-11-10T10:00:00", time_zone: "Asia/Seoul" },
+}
+
 describe("createQaNotionClient", () => {
   afterEach(() => fetchMock.mockReset())
 
@@ -36,7 +41,7 @@ describe("createQaNotionClient", () => {
             id: "page-1",
             properties: {
               [QA_PROPS.count]: { number: 3 },
-              [QA_PROPS.status]: { select: { name: "신규" } },
+              [QA_PROPS.progress]: { select: { name: "Todo" } },
             },
           },
         ],
@@ -46,7 +51,7 @@ describe("createQaNotionClient", () => {
 
     const row = await client.findByFingerprint("abc")
 
-    expect(row).toEqual({ pageId: "page-1", count: 3, status: "신규" })
+    expect(row).toEqual({ pageId: "page-1", count: 3, progress: "Todo" })
     const call = lastCall()
     expect(call.url).toBe("https://api.notion.com/v1/databases/db-1/query")
     expect(call.method).toBe("POST")
@@ -78,7 +83,6 @@ describe("createQaNotionClient", () => {
       fingerprint: "abc",
       environment: "iPhone · Safari · 390x844 · v1234567",
       occurredAt: "2026-11-10T01:00:00.000Z",
-      location: "src/x.tsx:1",
       children: [BODY_BLOCK],
     })
 
@@ -86,43 +90,48 @@ describe("createQaNotionClient", () => {
     expect(call.url).toBe("https://api.notion.com/v1/pages")
     expect(call.body.parent).toEqual({ database_id: "db-1" })
     const props = call.body.properties as Record<string, unknown>
+    expect(Object.keys(props).sort()).toEqual(
+      [
+        "제목",
+        "진행",
+        "심각도",
+        "종류",
+        "현상",
+        "발생 횟수",
+        "발생일",
+        "마지막 발생",
+        "환경",
+        "지문",
+        "화면",
+      ].sort()
+    )
     expect(props[QA_PROPS.title]).toEqual({
       title: [{ text: { content: "[회원가입] 동작 오류 – boom" } }],
     })
+    expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
+    expect(props[QA_PROPS.severity]).toEqual({ select: { name: "보통" } })
+    expect(props[QA_PROPS.kind]).toEqual({ select: { name: "동작 오류" } })
     expect(props[QA_PROPS.symptom]).toEqual({
       rich_text: [{ text: { content: "회원가입 화면에서 오류가 남" } }],
     })
-    expect(props[QA_PROPS.status]).toEqual({ select: { name: "신규" } })
-    expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
-    expect(props[QA_PROPS.severity]).toEqual({ select: { name: "보통" } })
-    expect(props[QA_PROPS.source]).toEqual({ select: { name: "자동수집" } })
-    expect(props[QA_PROPS.kind]).toEqual({ select: { name: "동작 오류" } })
     expect(props[QA_PROPS.screen]).toEqual({
       rich_text: [{ text: { content: "회원가입 (/signup)" } }],
     })
     expect(props[QA_PROPS.count]).toEqual({ number: 1 })
-    // 날짜는 한국 시간으로 표시되도록 KST 로컬 시각 + time_zone. 01:00Z = 10:00 KST
-    const KST = {
-      date: { start: "2026-11-10T10:00:00", time_zone: "Asia/Seoul" },
-    }
-    expect(props[QA_PROPS.firstSeen]).toEqual(KST)
-    expect(QA_PROPS.firstSeen).toBe("발생일")
-    expect(props[QA_PROPS.lastSeen]).toEqual(KST)
-    expect(props[QA_PROPS.fingerprint]).toEqual({
-      rich_text: [{ text: { content: "abc" } }],
-    })
+    expect(props[QA_PROPS.firstSeen]).toEqual(KST_10)
+    expect(props[QA_PROPS.lastSeen]).toEqual(KST_10)
     expect(props[QA_PROPS.environment]).toEqual({
       rich_text: [
         { text: { content: "iPhone · Safari · 390x844 · v1234567" } },
       ],
     })
-    expect(props[QA_PROPS.location]).toEqual({
-      rich_text: [{ text: { content: "src/x.tsx:1" } }],
+    expect(props[QA_PROPS.fingerprint]).toEqual({
+      rich_text: [{ text: { content: "abc" } }],
     })
     expect(call.body.children).toEqual([BODY_BLOCK])
   })
 
-  it("bumpRow는 횟수·마지막 발생·환경을 갱신하고 reopen이면 상태를 재발로 바꾼다", async () => {
+  it("bumpRow는 횟수·마지막 발생·환경을 갱신하고 reopen이면 Todo로 되돌리고 재발을 적는다", async () => {
     fetchMock.mockResolvedValueOnce(json(200, { id: "page-1" }))
     const client = createQaNotionClient(ENV, fetchMock)
 
@@ -146,11 +155,17 @@ describe("createQaNotionClient", () => {
         { text: { content: "Android · Chrome · 412x915 · vabcdef0" } },
       ],
     })
-    expect(props[QA_PROPS.status]).toEqual({ select: { name: "재발" } })
     expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
+    expect(props[QA_PROPS.causeSummary]).toEqual({
+      rich_text: [
+        {
+          text: { content: "[재발] 해결 처리 후 다시 발생 — 원인 재확인 필요" },
+        },
+      ],
+    })
   })
 
-  it("bumpRow는 reopen이 아니면 상태를 건드리지 않는다", async () => {
+  it("bumpRow는 reopen이 아니면 진행·원인 요약을 건드리지 않는다", async () => {
     fetchMock.mockResolvedValueOnce(json(200, { id: "page-1" }))
     const client = createQaNotionClient(ENV, fetchMock)
 
@@ -162,8 +177,8 @@ describe("createQaNotionClient", () => {
     })
 
     const props = lastCall().body.properties as Record<string, unknown>
-    expect(props[QA_PROPS.status]).toBeUndefined()
     expect(props[QA_PROPS.progress]).toBeUndefined()
+    expect(props[QA_PROPS.causeSummary]).toBeUndefined()
   })
 
   it("429는 한 번 재시도한다", async () => {

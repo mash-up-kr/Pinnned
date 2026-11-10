@@ -76,23 +76,8 @@ function parseApi(value: unknown): ErrorReport["api"] {
   }
 }
 
-/** 표에서 한눈에 볼 "오류 위치": 복원된 최상위 프레임 → 없으면 압축 스택의 첫 프레임 → API 요청 이름 */
-function locationOf(
-  report: ErrorReport,
-  stack: { topFrame?: string }
-): string | undefined {
-  if (stack.topFrame) return stack.topFrame
-  const firstFrame = report.stack
-    ?.split("\n")
-    .slice(1)
-    .map((line) => /((?:https?:\/\/|src\/)[^\s)]+)/.exec(line)?.[1])
-    .find(Boolean)
-  if (firstFrame) return firstFrame.replace(/^https?:\/\/[^/]+\//, "")
-  return report.api ? `${report.api.protocol} ${report.api.name}` : undefined
-}
-
 /**
- * 리포트 하나를 노션에 upsert한다. 같은 지문이면 횟수+1, 해결된 행이면 재발.
+ * 리포트 하나를 노션에 upsert한다. 같은 지문이면 횟수+1, Done 처리된 행이면 Todo로 되돌린다(재발).
  * ponytail: 조회→생성 사이에 같은 지문이 겹치면 행이 2개 생길 수 있다. 노션엔 원자적 upsert가 없다.
  */
 export async function ingestErrorReport(
@@ -116,7 +101,7 @@ export async function ingestErrorReport(
       count: existing.count + 1,
       occurredAt: report.occurredAt,
       environment: buildEnvironment(report),
-      reopen: existing.status === "해결",
+      reopen: existing.progress === "Done",
     })
     return
   }
@@ -132,7 +117,6 @@ export async function ingestErrorReport(
     fingerprint,
     environment: buildEnvironment(report),
     occurredAt: report.occurredAt,
-    location: locationOf(report, stack),
     children: buildRowBlocks(report, stack),
   })
 }

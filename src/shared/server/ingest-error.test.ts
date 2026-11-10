@@ -47,6 +47,7 @@ describe("ingestErrorReport", () => {
     expect(notion.createRow).toHaveBeenCalledTimes(1)
     expect(notion.bumpRow).not.toHaveBeenCalled()
     const input = notion.createRow.mock.calls[0][0]
+    expect(input).not.toHaveProperty("location")
     expect(input.title).toBe("[회원가입] 동작 오류 – boom")
     expect(input.symptom).toContain("회원가입 화면에서")
     expect(input.kindLabel).toBe("동작 오류")
@@ -54,7 +55,6 @@ describe("ingestErrorReport", () => {
     expect(input.screen).toBe("회원가입 (/signup)")
     expect(input.environment).toBe("기타 · 기타 · 390x844 · v1234567")
     expect(input.fingerprint).toMatch(/^[0-9a-f]{16}$/)
-    expect(input.location).toBe("assets/sample-abc.js:1:68")
     const body = JSON.stringify(input.children)
     expect(body).toContain("sample-abc.js:1:68")
     expect(body).toContain("랜딩 화면 진입")
@@ -63,7 +63,7 @@ describe("ingestErrorReport", () => {
   })
 
   it("기존 행이면 횟수를 올린다", async () => {
-    const notion = notionMock({ pageId: "p", count: 3, status: "신규" })
+    const notion = notionMock({ pageId: "p", count: 3, progress: "Todo" })
 
     await ingestErrorReport(REPORT, { notion, fetchMap: noMap })
 
@@ -76,8 +76,8 @@ describe("ingestErrorReport", () => {
     })
   })
 
-  it("해결된 행에 다시 들어오면 재발로 표시한다", async () => {
-    const notion = notionMock({ pageId: "p", count: 9, status: "해결" })
+  it("Done 처리된 행에 다시 들어오면 reopen으로 Todo로 되돌린다", async () => {
+    const notion = notionMock({ pageId: "p", count: 9, progress: "Done" })
 
     await ingestErrorReport(REPORT, { notion, fetchMap: noMap })
 

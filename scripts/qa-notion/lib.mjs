@@ -5,29 +5,15 @@ export const NOTION_API = "https://api.notion.com/v1"
 export const NOTION_VERSION = "2022-06-28"
 const RICH_TEXT_LIMIT = 2000
 
-export const STATUS_OPTIONS = [
-  "신규",
-  "분석중",
-  "보류",
-  "이슈생성",
-  "PR있음",
-  "해결",
-  "재발",
-  "무시",
-]
-/** 표 맨 왼쪽 뱃지. 상태에서 파생: 해결·무시 → Done, 그 외 → Todo */
+/** 표 맨 왼쪽 뱃지. 둘뿐 — 보류·노이즈·재발 같은 세부 사정은 원인 요약에 적는다 */
 export const PROGRESS_OPTIONS = [
   { name: "Todo", color: "red" },
   { name: "Done", color: "green" },
 ]
-export function progressFor(status) {
-  return status === "해결" || status === "무시" ? "Done" : "Todo"
-}
 
 const SELECT_PROPS = {
-  상태: STATUS_OPTIONS,
   진행: PROGRESS_OPTIONS.map((o) => o.name),
-  출처: ["자동수집", "수동제보"],
+  심각도: ["치명", "높음", "보통", "낮음"],
   // src/shared/server/row-content.ts의 KIND_LABELS와 같아야 한다
   종류: [
     "동작 오류",
@@ -37,13 +23,11 @@ const SELECT_PROPS = {
     "서버 요청 실패",
     "기타",
   ],
-  심각도: ["치명", "높음", "보통", "낮음"],
-  판정: ["FE", "BE", "FE+BE", "보류", "노이즈"],
 }
 const URL_PROPS = new Set(["FE 이슈", "BE 이슈", "PR"])
-const TEXT_PROPS = ["화면", "현상", "환경", "오류 위치", "지문", "원인 요약"]
+const TEXT_PROPS = ["화면", "현상", "환경", "원인 요약", "지문"]
 
-/** 스펙 5.3 그대로. `create-db`가 이걸로 DB를 만든다. */
+/** 표에 보이는 8개 + 행을 열면 보이는 것 + 숨김(마지막 발생·지문). `create-db`가 이걸로 DB를 만든다. */
 export function createDbProperties() {
   const props = { 제목: { title: {} } }
   for (const [name, options] of Object.entries(SELECT_PROPS))
@@ -68,21 +52,20 @@ export function toNotionProperty(name, value) {
 }
 
 /**
- * 주간 대상: (기간 내 마지막 발생 AND 해결·무시 아님) OR 상태=신규(수동 제보·미처리분).
- * until은 배타(다음 주 월요일 00:00). 노션 필터는 중첩 2단계까지라 or→and→leaf로 편다.
+ * 주간 대상: 진행=Todo 이면서 (기간 내 마지막 발생 OR 아직 분석 안 됨=원인 요약 비어 있음).
+ * until은 배타(다음 주 월요일 00:00). 노션 필터는 중첩 2단계까지라 and→or→leaf로 둔다.
  */
 export function buildListFilter(since, until) {
   return {
-    or: [
+    and: [
+      { property: "진행", select: { equals: "Todo" } },
       {
-        and: [
-          { property: "상태", select: { does_not_equal: "해결" } },
-          { property: "상태", select: { does_not_equal: "무시" } },
+        or: [
           { property: "마지막 발생", date: { on_or_after: since } },
-          { property: "마지막 발생", date: { before: until } },
+          { property: "원인 요약", rich_text: { is_empty: true } },
         ],
       },
-      { property: "상태", select: { equals: "신규" } },
+      { property: "마지막 발생", date: { before: until } },
     ],
   }
 }
@@ -100,35 +83,34 @@ export function extractNotionPageIds(text) {
 const plain = (rich) => (rich ?? []).map((r) => r.plain_text ?? "").join("")
 
 /** 노션 페이지 객체 → 주간 분석이 읽기 쉬운 평면 객체 */
-export function flattenPage(page, stackFromBody = "") {
+export function flattenPage(page, bodyText = "") {
   const p = page.properties
   const text = (name) => plain(p[name]?.rich_text)
   const select = (name) => p[name]?.select?.name ?? ""
   const date = (name) => p[name]?.date?.start ?? ""
+  const fingerprint = text("지문")
   return {
     pageId: page.id.replaceAll("-", ""),
     url: page.url,
     title: plain(p["제목"]?.title),
-    symptom: text("현상"),
-    location: text("오류 위치"),
-    status: select("상태"),
+    progress: select("진행"),
     severity: select("심각도"),
-    source: select("출처"),
     kind: select("종류"),
-    verdict: select("판정"),
     screen: text("화면"),
+    symptom: text("현상"),
     count: p["발생 횟수"]?.number ?? 0,
-    fingerprint: text("지문"),
-    environment: text("환경"),
     firstSeen: date("발생일"),
     lastSeen: date("마지막 발생"),
-    // 스택·API·환경은 페이지 본문 "개발자용 기술 정보" 토글 안 코드 블록에 있다
-    stackText: stackFromBody,
+    environment: text("환경"),
     causeSummary: text("원인 요약"),
     feIssue: p["FE 이슈"]?.url ?? "",
     beIssue: p["BE 이슈"]?.url ?? "",
     pr: p["PR"]?.url ?? "",
-    manual: select("출처") === "수동제보",
+    fingerprint,
+    // 수동 제보 행은 코드가 만든 게 아니라 지문이 없다
+    manual: fingerprint === "",
+    // 본문 전체 텍스트: 재현 절차·기대 결과·개발자 참고(스택·API·원본 로그)
+    bodyText,
   }
 }
 
