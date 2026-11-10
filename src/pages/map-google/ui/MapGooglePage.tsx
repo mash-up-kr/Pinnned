@@ -90,16 +90,13 @@ function MapGooglePageContent() {
   const trackedDetailRegion = React.useRef<string | null>(null)
   const [mapZoomStage, setMapZoomStage] = React.useState<ZoomStage>(0)
   const showMapChrome = !decorating && detailRegion === null
-  React.useEffect(() => {
+  // 지도 진입·상태 변경을 화면에 그리기 전에 반영해 이전 표시 상태가 보이지 않게 한다.
+  React.useLayoutEffect(() => {
     setMapState((state) => ({
       ...state,
       visible: ready && hasPot && showMapChrome,
     }))
   }, [hasPot, ready, setMapState, showMapChrome])
-  React.useEffect(
-    () => () => setMapState((state) => ({ ...state, visible: true })),
-    [setMapState]
-  )
 
   // 2.5단계(인기지역 [+] 선노출)부터 상세 취급 — 상단이 뒤로가기로 바뀐다
   const showPersistentMapActions = showMapChrome && mapZoomStage < 2.5
