@@ -100,12 +100,13 @@ describe("createQaNotionClient", () => {
       rich_text: [{ text: { content: "회원가입 (/signup)" } }],
     })
     expect(props[QA_PROPS.count]).toEqual({ number: 1 })
-    // 발생일은 KST 날짜만 (표에서 짧게 보이게). 01:00Z = 10:00 KST → 같은 날
-    expect(props[QA_PROPS.firstSeen]).toEqual({ date: { start: "2026-11-10" } })
+    // 날짜는 한국 시간으로 표시되도록 KST 로컬 시각 + time_zone. 01:00Z = 10:00 KST
+    const KST = {
+      date: { start: "2026-11-10T10:00:00", time_zone: "Asia/Seoul" },
+    }
+    expect(props[QA_PROPS.firstSeen]).toEqual(KST)
     expect(QA_PROPS.firstSeen).toBe("발생일")
-    expect(props[QA_PROPS.lastSeen]).toEqual({
-      date: { start: "2026-11-10T01:00:00.000Z" },
-    })
+    expect(props[QA_PROPS.lastSeen]).toEqual(KST)
     expect(props[QA_PROPS.fingerprint]).toEqual({
       rich_text: [{ text: { content: "abc" } }],
     })
@@ -137,7 +138,7 @@ describe("createQaNotionClient", () => {
     const props = call.body.properties as Record<string, unknown>
     expect(props[QA_PROPS.count]).toEqual({ number: 4 })
     expect(props[QA_PROPS.lastSeen]).toEqual({
-      date: { start: "2026-11-10T02:00:00.000Z" },
+      date: { start: "2026-11-10T11:00:00", time_zone: "Asia/Seoul" },
     })
     expect(props[QA_PROPS.environment]).toEqual({
       rich_text: [

@@ -61,12 +61,18 @@ const text = (content: string) => ({
   rich_text: [{ text: { content: content.slice(0, RICH_TEXT_LIMIT) } }],
 })
 const select = (name: string) => ({ select: { name } })
-const date = (start: string) => ({ date: { start } })
-/** "2026-11-10" — 표에 짧게 보이도록 KST 날짜만 */
-const kstDay = (iso: string) =>
-  new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10)
+/**
+ * 한국 시간으로 표시되는 날짜. 노션은 time_zone을 주면 start에 오프셋을 붙이지 못하므로
+ * KST 로컬 시각 문자열("2026-11-10T22:25:00")로 바꿔 넣는다.
+ */
+const date = (iso: string) => ({
+  date: {
+    start: new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19),
+    time_zone: "Asia/Seoul",
+  },
+})
 
 interface QueryResult {
   results: Array<{
@@ -137,7 +143,7 @@ export function createQaNotionClient(
         [QA_PROPS.kind]: select(input.kindLabel),
         [QA_PROPS.severity]: select(input.severity),
         [QA_PROPS.count]: { number: 1 },
-        [QA_PROPS.firstSeen]: date(kstDay(input.occurredAt)),
+        [QA_PROPS.firstSeen]: date(input.occurredAt),
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.fingerprint]: text(input.fingerprint),
         [QA_PROPS.environment]: text(input.environment),
