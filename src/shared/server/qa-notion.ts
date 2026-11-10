@@ -62,6 +62,11 @@ const text = (content: string) => ({
 })
 const select = (name: string) => ({ select: { name } })
 const date = (start: string) => ({ date: { start } })
+/** "2026-11-10" — 표에 짧게 보이도록 KST 날짜만 */
+const kstDay = (iso: string) =>
+  new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10)
 
 interface QueryResult {
   results: Array<{
@@ -132,7 +137,7 @@ export function createQaNotionClient(
         [QA_PROPS.kind]: select(input.kindLabel),
         [QA_PROPS.severity]: select(input.severity),
         [QA_PROPS.count]: { number: 1 },
-        [QA_PROPS.firstSeen]: date(input.occurredAt),
+        [QA_PROPS.firstSeen]: date(kstDay(input.occurredAt)),
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.fingerprint]: text(input.fingerprint),
         [QA_PROPS.environment]: text(input.environment),

@@ -100,9 +100,8 @@ describe("createQaNotionClient", () => {
       rich_text: [{ text: { content: "회원가입 (/signup)" } }],
     })
     expect(props[QA_PROPS.count]).toEqual({ number: 1 })
-    expect(props[QA_PROPS.firstSeen]).toEqual({
-      date: { start: "2026-11-10T01:00:00.000Z" },
-    })
+    // 발생일은 KST 날짜만 (표에서 짧게 보이게). 01:00Z = 10:00 KST → 같은 날
+    expect(props[QA_PROPS.firstSeen]).toEqual({ date: { start: "2026-11-10" } })
     expect(QA_PROPS.firstSeen).toBe("발생일")
     expect(props[QA_PROPS.lastSeen]).toEqual({
       date: { start: "2026-11-10T01:00:00.000Z" },
