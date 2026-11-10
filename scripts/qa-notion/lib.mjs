@@ -31,17 +31,7 @@ const SELECT_PROPS = {
   판정: ["FE", "BE", "FE+BE", "보류", "노이즈"],
 }
 const URL_PROPS = new Set(["FE 이슈", "BE 이슈", "PR"])
-const TEXT_PROPS = [
-  "화면",
-  "현상",
-  "환경",
-  "오류 위치",
-  "지문",
-  "원인 그룹",
-  "원인 요약",
-  "재현 방법",
-  "기대 동작",
-]
+const TEXT_PROPS = ["화면", "현상", "환경", "오류 위치", "지문", "원인 요약"]
 
 /** 스펙 5.3 그대로. `create-db`가 이걸로 DB를 만든다. */
 export function createDbProperties() {
@@ -52,7 +42,6 @@ export function createDbProperties() {
   for (const name of URL_PROPS) props[name] = { url: {} }
   props["발생 횟수"] = { number: {} }
   props["스크린샷"] = { files: {} }
-  props["첫 발생"] = { date: {} }
   props["마지막 발생"] = { date: {} }
   return props
 }
@@ -119,18 +108,14 @@ export function flattenPage(page, stackFromBody = "") {
     count: p["발생 횟수"]?.number ?? 0,
     fingerprint: text("지문"),
     environment: text("환경"),
-    firstSeen: date("첫 발생"),
     lastSeen: date("마지막 발생"),
     // 스택·API·환경은 페이지 본문 "개발자용 기술 정보" 토글 안 코드 블록에 있다
     stackText: stackFromBody,
-    causeGroup: text("원인 그룹"),
     causeSummary: text("원인 요약"),
     feIssue: p["FE 이슈"]?.url ?? "",
     beIssue: p["BE 이슈"]?.url ?? "",
     pr: p["PR"]?.url ?? "",
     manual: select("출처") === "수동제보",
-    repro: text("재현 방법"),
-    expected: text("기대 동작"),
   }
 }
 

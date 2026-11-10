@@ -70,17 +70,13 @@ describe("createDbProperties", () => {
       "환경",
       "오류 위치",
       "발생 횟수",
-      "첫 발생",
       "마지막 발생",
       "지문",
       "스크린샷",
-      "원인 그룹",
       "원인 요약",
       "FE 이슈",
       "BE 이슈",
       "PR",
-      "재현 방법",
-      "기대 동작",
     ])
       expect(props, name).toHaveProperty(name)
   })
@@ -101,7 +97,7 @@ describe("createDbProperties", () => {
   it("제목은 title, 발생 횟수는 number, 날짜는 date, 링크는 url", () => {
     expect(props["제목"]).toEqual({ title: {} })
     expect(props["발생 횟수"]).toEqual({ number: {} })
-    expect(props["첫 발생"]).toEqual({ date: {} })
+    expect(props["마지막 발생"]).toEqual({ date: {} })
     expect(props["PR"]).toEqual({ url: {} })
     expect(props["스크린샷"]).toEqual({ files: {} })
     expect(props["종류"].select.options.map((o) => o.name)).toContain(
@@ -113,8 +109,15 @@ describe("createDbProperties", () => {
       "보통",
       "낮음",
     ])
-    expect(props).not.toHaveProperty("메모")
-    expect(props).not.toHaveProperty("라우트")
+    for (const removed of [
+      "메모",
+      "라우트",
+      "첫 발생",
+      "원인 그룹",
+      "재현 방법",
+      "기대 동작",
+    ])
+      expect(props).not.toHaveProperty(removed)
   })
 })
 
