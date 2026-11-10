@@ -98,7 +98,10 @@ export function DesktopGuide({ children }: { children: ReactNode }) {
         // `h-[var(--app-vh)]`(지도)와 `fixed`(앨범·마이페이지)의 하단 내비 기준이 12px 어긋난다
         className="contents frame:relative frame:box-content frame:block frame:h-[var(--app-vh)] frame:w-[var(--app-vw)] frame:shrink-0 frame:[transform:translate(0)] frame:overflow-hidden frame:rounded-[56px] frame:border-[6px] frame:border-neutral-300 frame:bg-bg-neutral-weak"
       >
-        <div className="min-h-[var(--app-vh)] bg-background">
+        <div
+          data-app-screen
+          className="min-h-[var(--app-vh)] bg-background [view-transition-name:app-screen]"
+        >
           <PortalContainerProvider container={frame}>
             {children}
           </PortalContainerProvider>

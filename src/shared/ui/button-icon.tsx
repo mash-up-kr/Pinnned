@@ -6,7 +6,7 @@ import { cn } from "@/shared/lib/utils"
 
 // Figma Button - Icon (Large). 흰 배경 · shadow, disabled 시 weak-disabled 토큰.
 const buttonIconVariants = cva(
-  "inline-flex items-center justify-center rounded-full bg-bg-neutral-weak text-fg-neutral-bold shadow-[0px_0px_20px_0px_rgba(142,150,169,0.12)] transition-colors disabled:pointer-events-none disabled:bg-bg-neutral-weak-disabled disabled:text-fg-neutral-bold-disabled",
+  "inline-flex items-center justify-center rounded-full bg-bg-neutral-weak text-fg-neutral-bold shadow-[0px_0px_20px_0px_rgba(142,150,169,0.12)] transition-[transform,background-color,color] duration-100 ease-out active:scale-[0.94] disabled:pointer-events-none disabled:bg-bg-neutral-weak-disabled disabled:text-fg-neutral-bold-disabled motion-reduce:transition-none motion-reduce:active:scale-100",
   {
     variants: {
       // icon: 아이콘 단독 원형 42px(아이콘 24) / label: 아이콘 20 + 라벨 pill

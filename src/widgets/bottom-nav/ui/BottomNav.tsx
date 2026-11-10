@@ -29,7 +29,10 @@ function BottomNav({
   return (
     <nav
       aria-label="주요 메뉴"
-      className={cn("relative mx-auto w-[310px]", className)}
+      className={cn(
+        "relative mx-auto w-[310px] [view-transition-class:app-screen] [view-transition-name:app-bottom-nav]",
+        className
+      )}
       {...props}
     >
       <div className="flex items-center justify-between rounded-full bg-bg-neutral-inverse px-8 py-3">
@@ -40,7 +43,7 @@ function BottomNav({
           onClick={onAlbumClick}
           disabled={albumDisabled}
           className={cn(
-            "flex w-[60px] flex-col items-center gap-1 py-1",
+            "flex w-[60px] flex-col items-center gap-1 py-1 transition-[transform,color] duration-100 ease-out active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100",
             active === "album" ? "text-white" : "text-fg-neutral-subtle",
             albumDisabled && "cursor-default"
           )}
@@ -61,7 +64,7 @@ function BottomNav({
           type="button"
           onClick={onMyPageClick}
           className={cn(
-            "flex w-[60px] flex-col items-center gap-1 py-1",
+            "flex w-[60px] flex-col items-center gap-1 py-1 transition-[transform,color] duration-100 ease-out active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100",
             active === "my-page" ? "text-white" : "text-fg-neutral-subtle"
           )}
           aria-current={active === "my-page" ? "page" : undefined}
@@ -86,7 +89,7 @@ function BottomNav({
           type="button"
           aria-label="지도 보기"
           onClick={onGlobeClick}
-          className="absolute top-[-35.36px] left-1/2 -translate-x-1/2"
+          className="absolute top-[-35.36px] left-1/2 -translate-x-1/2 transition-transform duration-100 ease-out active:scale-[0.94] motion-reduce:transition-none motion-reduce:active:scale-100"
         >
           <img src={globeSrc} alt="" className="size-[96px]" />
         </button>

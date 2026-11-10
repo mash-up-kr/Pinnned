@@ -10,7 +10,7 @@ const meta: Meta<typeof ButtonIcon> = {
     docs: {
       description: {
         component:
-          "ButtonIcon (Figma Button - Icon v1.0.0). 흰 배경 · shadow 아이콘 버튼. variant: icon(원형 42px, 아이콘 24)·label(아이콘 20 + H8 라벨 pill). disabled 시 weak-disabled 토큰. icon 단독 사용 시 aria-label 필수.",
+          "ButtonIcon (Figma Button - Icon v1.0.0). 흰 배경 · shadow 아이콘 버튼. variant: icon(원형 42px, 아이콘 24)·label(아이콘 20 + H8 라벨 pill). 터치 중 0.94배로 반응하고 disabled·모션 감소 상태에서는 변형하지 않는다. icon 단독 사용 시 aria-label 필수.",
       },
     },
   },
