@@ -14,7 +14,7 @@ const meta: Meta<typeof ProfileCard> = {
     docs: {
       description: {
         component:
-          "Figma ProfileCard v1.0.0. 60px 프로필 + 닉네임(H5) + '프로필 수정' 링크.",
+          "Figma ProfileCard v1.0.0. 60px 프로필 + 닉네임(H5) + '프로필 수정' 링크. 수정 액션은 터치 중 짧게 축소되며 모션 감소 설정에서는 변형하지 않는다.",
       },
     },
   },

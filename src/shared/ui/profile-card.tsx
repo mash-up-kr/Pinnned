@@ -34,7 +34,7 @@ function ProfileCard({
         <button
           type="button"
           onClick={onEdit}
-          className="flex items-center gap-1 text-h8-1 text-fg-neutral-subtle"
+          className="flex items-center gap-1 text-h8-1 text-fg-neutral-subtle transition-transform duration-100 ease-out active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100"
         >
           프로필 수정
           <ChevronRight className="size-4" />

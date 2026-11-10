@@ -1,5 +1,6 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router"
 import { routeTree } from "../routeTree.gen"
+import { navigationMotion } from "@/shared/lib/navigation-motion"
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -7,6 +8,12 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    defaultViewTransition: {
+      types: ({ fromLocation, toLocation, pathChanged }) =>
+        pathChanged
+          ? [navigationMotion(fromLocation?.pathname, toLocation.pathname)]
+          : false,
+    },
   })
 
   return router

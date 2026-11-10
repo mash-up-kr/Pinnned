@@ -6,7 +6,7 @@ import { cn } from "@/shared/lib/utils"
 
 // Figma Button - CTA (Large). 풀폭 pill, 라벨 H6. variant별 default/disabled 토큰.
 const ctaVariants = cva(
-  "flex w-full items-center justify-center rounded-full p-4 text-center text-h6 transition-colors disabled:pointer-events-none",
+  "flex w-full items-center justify-center rounded-full p-4 text-center text-h6 transition-[transform,background-color,color] duration-100 ease-out active:scale-[0.98] disabled:pointer-events-none motion-reduce:transition-none motion-reduce:active:scale-100",
   {
     variants: {
       variant: {

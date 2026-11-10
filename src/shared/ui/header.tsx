@@ -38,7 +38,7 @@ function Header({
       type="button"
       aria-label={type === "close" ? "닫기" : "뒤로 가기"}
       onClick={onIconClick}
-      className="-m-2.5 flex size-11 shrink-0 items-center justify-center text-fg-neutral-bold"
+      className="-m-2.5 flex size-11 shrink-0 items-center justify-center text-fg-neutral-bold transition-transform duration-100 ease-out active:scale-[0.94] motion-reduce:transition-none motion-reduce:active:scale-100"
     >
       <Icon className="size-6" />
     </button>
