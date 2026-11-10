@@ -64,25 +64,21 @@ export function toNotionProperty(name, value) {
 }
 
 /**
- * 주간 대상: 기간 내 마지막 발생 OR 상태=신규(수동 제보·미처리분). 해결·무시는 제외.
- * until은 배타(다음 주 월요일 00:00).
+ * 주간 대상: (기간 내 마지막 발생 AND 해결·무시 아님) OR 상태=신규(수동 제보·미처리분).
+ * until은 배타(다음 주 월요일 00:00). 노션 필터는 중첩 2단계까지라 or→and→leaf로 편다.
  */
 export function buildListFilter(since, until) {
   return {
-    and: [
-      { property: "상태", select: { does_not_equal: "해결" } },
-      { property: "상태", select: { does_not_equal: "무시" } },
+    or: [
       {
-        or: [
-          {
-            and: [
-              { property: "마지막 발생", date: { on_or_after: since } },
-              { property: "마지막 발생", date: { before: until } },
-            ],
-          },
-          { property: "상태", select: { equals: "신규" } },
+        and: [
+          { property: "상태", select: { does_not_equal: "해결" } },
+          { property: "상태", select: { does_not_equal: "무시" } },
+          { property: "마지막 발생", date: { on_or_after: since } },
+          { property: "마지막 발생", date: { before: until } },
         ],
       },
+      { property: "상태", select: { equals: "신규" } },
     ],
   }
 }

@@ -105,29 +105,28 @@ describe("createDbProperties", () => {
 })
 
 describe("buildListFilter", () => {
-  it("기간 내 마지막 발생 또는 상태 신규, 단 해결·무시 제외", () => {
-    const filter = buildListFilter("2026-11-03T00:00:00+09:00", "2026-11-10T00:00:00+09:00")
+  it("기간 내 마지막 발생(해결·무시 제외) 또는 상태 신규 — 노션 중첩 2단계 제한 안", () => {
+    const filter = buildListFilter(
+      "2026-11-03T00:00:00+09:00",
+      "2026-11-10T00:00:00+09:00"
+    )
     expect(filter).toEqual({
-      and: [
-        { property: "상태", select: { does_not_equal: "해결" } },
-        { property: "상태", select: { does_not_equal: "무시" } },
+      or: [
         {
-          or: [
+          and: [
+            { property: "상태", select: { does_not_equal: "해결" } },
+            { property: "상태", select: { does_not_equal: "무시" } },
             {
-              and: [
-                {
-                  property: "마지막 발생",
-                  date: { on_or_after: "2026-11-03T00:00:00+09:00" },
-                },
-                {
-                  property: "마지막 발생",
-                  date: { before: "2026-11-10T00:00:00+09:00" },
-                },
-              ],
+              property: "마지막 발생",
+              date: { on_or_after: "2026-11-03T00:00:00+09:00" },
             },
-            { property: "상태", select: { equals: "신규" } },
+            {
+              property: "마지막 발생",
+              date: { before: "2026-11-10T00:00:00+09:00" },
+            },
           ],
         },
+        { property: "상태", select: { equals: "신규" } },
       ],
     })
   })
