@@ -1,4 +1,5 @@
 import { gqlClient } from "./client"
+import { reportRestFailure } from "./error-reporter/api-failure"
 import { normalizeImageOrientation } from "@/shared/lib/exif-orientation"
 
 const CREATE_IMAGE_UPLOAD_URL_MUTATION = /* GraphQL */ `
@@ -43,15 +44,22 @@ export async function uploadImageFile(file: File): Promise<string> {
 
   // presigned URL은 발급 시 서명된 헤더(content-type + SSE-C encryptionHeaders)를
   // 그대로 요구한다 — 헤더를 빼면 서명 불일치로 업로드 자체가 거부된다
-  const uploaded = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": contentType,
-      ...Object.fromEntries(encryptionHeaders.map((h) => [h.key, h.value])),
-    },
-    body: normalized,
-  })
+  let uploaded: Response
+  try {
+    uploaded = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+        ...Object.fromEntries(encryptionHeaders.map((h) => [h.key, h.value])),
+      },
+      body: normalized,
+    })
+  } catch (error) {
+    reportRestFailure("PUT", uploadUrl, { error })
+    throw error
+  }
   if (!uploaded.ok) {
+    reportRestFailure("PUT", uploadUrl, { status: uploaded.status })
     throw new Error(`이미지 업로드 실패 (${uploaded.status})`)
   }
   return imageId

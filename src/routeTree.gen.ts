@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './app/routes/__root'
 import { Route as SignupRouteImport } from './app/routes/signup'
+import { Route as ReportErrorRouteImport } from './app/routes/report-error'
 import { Route as PotStartRouteImport } from './app/routes/pot-start'
 import { Route as PotJoinRouteImport } from './app/routes/pot-join'
 import { Route as PotCreateRouteImport } from './app/routes/pot-create'
@@ -29,6 +30,11 @@ import { Route as MyPagePotPotIdRouteImport } from './app/routes/my-page.pot.$po
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportErrorRoute = ReportErrorRouteImport.update({
+  id: '/report-error',
+  path: '/report-error',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PotStartRoute = PotStartRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/pot-create': typeof PotCreateRoute
   '/pot-join': typeof PotJoinRoute
   '/pot-start': typeof PotStartRoute
+  '/report-error': typeof ReportErrorRoute
   '/signup': typeof SignupRoute
   '/i/$code': typeof ICodeRoute
   '/login/app-start': typeof LoginAppStartRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/pot-create': typeof PotCreateRoute
   '/pot-join': typeof PotJoinRoute
   '/pot-start': typeof PotStartRoute
+  '/report-error': typeof ReportErrorRoute
   '/signup': typeof SignupRoute
   '/i/$code': typeof ICodeRoute
   '/login/app-start': typeof LoginAppStartRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/pot-create': typeof PotCreateRoute
   '/pot-join': typeof PotJoinRoute
   '/pot-start': typeof PotStartRoute
+  '/report-error': typeof ReportErrorRoute
   '/signup': typeof SignupRoute
   '/i/$code': typeof ICodeRoute
   '/login/app-start': typeof LoginAppStartRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/pot-create'
     | '/pot-join'
     | '/pot-start'
+    | '/report-error'
     | '/signup'
     | '/i/$code'
     | '/login/app-start'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/pot-create'
     | '/pot-join'
     | '/pot-start'
+    | '/report-error'
     | '/signup'
     | '/i/$code'
     | '/login/app-start'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/pot-create'
     | '/pot-join'
     | '/pot-start'
+    | '/report-error'
     | '/signup'
     | '/i/$code'
     | '/login/app-start'
@@ -226,6 +238,7 @@ export interface RootRouteChildren {
   PotCreateRoute: typeof PotCreateRoute
   PotJoinRoute: typeof PotJoinRoute
   PotStartRoute: typeof PotStartRoute
+  ReportErrorRoute: typeof ReportErrorRoute
   SignupRoute: typeof SignupRoute
   ICodeRoute: typeof ICodeRoute
   LoginAppStartRoute: typeof LoginAppStartRoute
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report-error': {
+      id: '/report-error'
+      path: '/report-error'
+      fullPath: '/report-error'
+      preLoaderRoute: typeof ReportErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pot-start': {
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   PotCreateRoute: PotCreateRoute,
   PotJoinRoute: PotJoinRoute,
   PotStartRoute: PotStartRoute,
+  ReportErrorRoute: ReportErrorRoute,
   SignupRoute: SignupRoute,
   ICodeRoute: ICodeRoute,
   LoginAppStartRoute: LoginAppStartRoute,

@@ -8,6 +8,7 @@ import { DesktopGuide } from "@/widgets/desktop-guide"
 
 import { QueryProvider } from "@/shared/api/QueryProvider"
 import { AnalyticsRuntime } from "@/shared/api/analytics-runtime"
+import { ErrorReporterRuntime } from "@/shared/api/error-reporter"
 import { PwaRuntime } from "@/shared/ui/pwa-runtime"
 import { AppBottomNavProvider } from "@/shared/ui/app-bottom-nav-context"
 import { AppBottomNav } from "@/app/ui/AppBottomNav"
@@ -106,6 +107,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <PwaRuntime />
         <AnalyticsRuntime />
+        <ErrorReporterRuntime />
         <QueryProvider>
           <AppBottomNavProvider>
             <DesktopGuide bottomNav={<AppBottomNav />}>

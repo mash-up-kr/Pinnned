@@ -95,6 +95,9 @@ importers:
       shadcn:
         specifier: ^4.7.0
         version: 4.7.0(@types/node@22.19.19)(typescript@5.9.3)
+      source-map-js:
+        specifier: ^1.2.1
+        version: 1.2.1
       supercluster:
         specifier: ^8.0.1
         version: 8.0.1

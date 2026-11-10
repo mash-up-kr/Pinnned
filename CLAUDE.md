@@ -30,3 +30,4 @@ TanStack Start(SSR) · React 19 · TS strict · Tailwind 4 · shadcn/ui · pnpm.
 - 커밋 시 lint-staged가 `eslint --fix` + prettier로 재포맷한다. 커밋 후 diff를 다시 확인한다.
 - nitro dev의 `ssr is unavailable` · `getBuiltins` 타임아웃은 dev 서버 재시작으로 해결된다. 코드·env 문제가 아니다.
 - `AGENTS.md`는 Codex용 미러다. 원본은 `.claude/`.
+- 운영 에러는 `/report-error` 서버 라우트 → 노션 QA DB로 간다. 주간 트리아지 프롬프트는 `.github/weekly-triage/PROMPT.md`, 노션 조작은 `scripts/qa-notion.mjs`.

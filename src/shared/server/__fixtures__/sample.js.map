@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/sample.ts"],
+  "sourcesContent": ["export function greetUser(name: string): string {\n  const prefix = \"hello\"\n  return prefix + \" \" + name.toUpperCase()\n}\n\nexport function failHard(): never {\n  throw new Error(\"boom from sample\")\n}\n"],
+  "mappings": "AAAO,SAASA,EAAUC,EAAsB,CAE9C,MADe,QACC,IAAMA,EAAK,YAAY,CACzC,CAEO,SAASC,GAAkB,CAChC,MAAM,IAAI,MAAM,kBAAkB,CACpC",
+  "names": ["greetUser", "name", "failHard"]
+}

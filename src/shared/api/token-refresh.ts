@@ -1,3 +1,4 @@
+import { reportRestFailure } from "./error-reporter/api-failure"
 import { clearTokens, getRefreshToken, setTokens } from "./token-storage"
 
 async function doRefresh(): Promise<boolean> {
@@ -11,8 +12,9 @@ async function doRefresh(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     })
-  } catch {
+  } catch (error) {
     // 네트워크 오류 — 토큰 자체가 무효인 건 아니므로 지우지 않는다
+    reportRestFailure("POST", "/api/auth/refresh", { error })
     return false
   }
 
@@ -21,7 +23,10 @@ async function doRefresh(): Promise<boolean> {
     clearTokens()
     return false
   }
-  if (!res.ok) return false
+  if (!res.ok) {
+    reportRestFailure("POST", "/api/auth/refresh", { status: res.status })
+    return false
+  }
 
   const data = (await res.json()) as {
     accessToken: string

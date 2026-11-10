@@ -19,6 +19,7 @@ description: |
 4. **각 그룹을 커밋하기 직전에 해당 diff 요약과 커밋 메시지를 보여주고 승인을 기다린다** — `git commit`은 승인 없이 실행하지 않는다 (`.claude/rules/behavior.md` 커밋 승인 규칙).
    - 예외: 사용자가 `/gone-gaming`을 직접 호출했고 해당 스킬의 필수 검증/reviewer 게이트를 모두 통과한 경우에만 승인 대기를 생략할 수 있다.
    - `/gone-gaming`에서도 필수 검증이 실패 상태이면 커밋하지 않는다.
+   - 예외 2: `weekly-triage` GitHub Actions 실행 중(`GITHUB_ACTIONS=true`, `.github/weekly-triage/PROMPT.md` 수행)이면 검증 통과 후 승인 대기 없이 커밋한다.
 5. 승인되면 커밋하고, 다음 그룹으로 넘어가 3~4를 반복한다.
 6. 커밋 후 push는 하지 않는다. 단, `/gone-gaming`은 자체 Push + PR 단계에서만 push할 수 있다.
 

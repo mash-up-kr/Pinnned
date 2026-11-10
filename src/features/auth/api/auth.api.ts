@@ -1,4 +1,5 @@
 // 소셜 로그인 REST API (노션 스펙). 상대경로 — dev는 vite proxy, prod는 nitro가 백엔드로 프록시.
+import { reportRestFailure } from "@/shared/api/error-reporter"
 
 export class AuthApiError extends Error {
   constructor(
@@ -25,12 +26,19 @@ export interface ExchangeResponse {
 }
 
 async function authPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  } catch (error) {
+    reportRestFailure("POST", path, { error })
+    throw error
+  }
   if (!res.ok) {
+    reportRestFailure("POST", path, { status: res.status })
     // 에러 공통 포맷 { code, message } — 파싱 실패(HTML 에러 페이지 등) 대비 폴백
     let code = "UNKNOWN"
     let message = ""
@@ -69,15 +77,24 @@ export async function uploadImage(
   file: File,
   encryptionHeaders: Array<{ key: string; value: string }> = []
 ): Promise<void> {
-  const res = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type,
-      ...Object.fromEntries(encryptionHeaders.map((h) => [h.key, h.value])),
-    },
-    body: file,
-  })
-  if (!res.ok) throw new AuthApiError(res.status, "UPLOAD_FAILED", "")
+  let res: Response
+  try {
+    res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+        ...Object.fromEntries(encryptionHeaders.map((h) => [h.key, h.value])),
+      },
+      body: file,
+    })
+  } catch (error) {
+    reportRestFailure("PUT", uploadUrl, { error })
+    throw error
+  }
+  if (!res.ok) {
+    reportRestFailure("PUT", uploadUrl, { status: res.status })
+    throw new AuthApiError(res.status, "UPLOAD_FAILED", "")
+  }
 }
 
 export function completeSignup(input: {
