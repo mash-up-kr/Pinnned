@@ -587,16 +587,26 @@
     }
 
     /* 콘텐츠 스냅샷만 이동시킨다. 데스크톱 폰 프레임의 바깥 모양은 고정한다. */
-    ::view-transition-group(app-screen),
-    ::view-transition-group(app-bottom-nav) {
+    ::view-transition-group(app-screen) {
         animation-duration: 160ms;
         animation-timing-function: ease-out;
+    }
+
+    /* 하단 탭바는 화면과 함께 페이드하지 않고 같은 자리에 유지한다. */
+    ::view-transition-group(app-bottom-nav),
+    ::view-transition-old(app-bottom-nav),
+    ::view-transition-new(app-bottom-nav) {
+        animation: none;
     }
 
     /* 폰 프레임 안에서 움직이는 콘텐츠의 사각형 가장자리가 프레임 밖에 보이지 않게
        캡처 레이어에만 프레임 클립을 적용한다. 모바일 화면에는 프레임 클립이 없다. */
     @media (min-width: 480px) and (hover: hover) and (pointer: fine) {
-        ::view-transition-group(app-screen),
+        ::view-transition-group(app-screen) {
+            overflow: clip;
+            border-radius: 50px;
+        }
+
         ::view-transition-group(app-bottom-nav) {
             overflow: clip;
             border-radius: 50px;
@@ -650,8 +660,7 @@
     @media (prefers-reduced-motion: reduce) {
         ::view-transition-old(app-screen),
         ::view-transition-new(app-screen),
-        ::view-transition-group(app-screen),
-        ::view-transition-group(app-bottom-nav) {
+        ::view-transition-group(app-screen) {
             animation-duration: 1ms !important;
             animation-delay: 0ms !important;
             transform: none !important;
