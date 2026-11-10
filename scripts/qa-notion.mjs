@@ -47,7 +47,10 @@ async function queryAll(path, body) {
 
 /** 페이지 본문의 code 블록 텍스트 (2,000자 넘는 스택 전체) */
 async function readCodeBlocks(pageId) {
-  const blocks = await api.call("GET", `/blocks/${pageId}/children?page_size=100`)
+  const blocks = await api.call(
+    "GET",
+    `/blocks/${pageId}/children?page_size=100`
+  )
   return blocks.results
     .filter((b) => b.type === "code")
     .map((b) => b.code.rich_text.map((r) => r.plain_text).join(""))
@@ -73,14 +76,8 @@ const commands = {
       sorts: [{ property: "마지막 발생", direction: "descending" }],
     })
     const rows = []
-    for (const page of pages) {
-      const stackProp = page.properties["복원 스택"]?.rich_text ?? []
-      const body =
-        stackProp.length && stackProp[0].plain_text.length >= 2000
-          ? await readCodeBlocks(page.id)
-          : ""
-      rows.push(flattenPage(page, body))
-    }
+    for (const page of pages)
+      rows.push(flattenPage(page, await readCodeBlocks(page.id)))
     console.log(JSON.stringify(rows, null, 2))
   },
 
@@ -98,7 +95,8 @@ const commands = {
   },
 
   async resolve() {
-    const file = flags["pr-body-file"] ?? fail("--pr-body-file <path>가 필요하다")
+    const file =
+      flags["pr-body-file"] ?? fail("--pr-body-file <path>가 필요하다")
     const ids = extractNotionPageIds(readFileSync(file, "utf8"))
     if (ids.length === 0) return console.log("노션 링크 없음")
     for (const id of ids) {
@@ -111,5 +109,6 @@ const commands = {
 }
 
 const run = commands[command]
-if (!run) fail(`알 수 없는 명령: ${command}. create-db | list | update | resolve`)
+if (!run)
+  fail(`알 수 없는 명령: ${command}. create-db | list | update | resolve`)
 run().catch((error) => fail(error.message))
