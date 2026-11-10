@@ -9,6 +9,8 @@ import { DesktopGuide } from "@/widgets/desktop-guide"
 import { QueryProvider } from "@/shared/api/QueryProvider"
 import { AnalyticsRuntime } from "@/shared/api/analytics-runtime"
 import { PwaRuntime } from "@/shared/ui/pwa-runtime"
+import { AppBottomNavProvider } from "@/shared/ui/app-bottom-nav-context"
+import { AppBottomNav } from "@/app/ui/AppBottomNav"
 
 // Microsoft Clarity 사용자 행동 분석 스니펫
 const CLARITY_SNIPPET = `(function(c,l,a,r,i,t,y){
@@ -105,9 +107,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <PwaRuntime />
         <AnalyticsRuntime />
         <QueryProvider>
-          <DesktopGuide>
-            <OverlayProvider>{children}</OverlayProvider>
-          </DesktopGuide>
+          <AppBottomNavProvider>
+            <DesktopGuide bottomNav={<AppBottomNav />}>
+              <OverlayProvider>{children}</OverlayProvider>
+            </DesktopGuide>
+          </AppBottomNavProvider>
         </QueryProvider>
         <TanStackDevtools
           config={{ position: "bottom-right" }}

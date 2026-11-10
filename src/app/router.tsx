@@ -9,10 +9,15 @@ export function getRouter() {
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
     defaultViewTransition: {
-      types: ({ fromLocation, toLocation, pathChanged }) =>
-        pathChanged
-          ? [navigationMotion(fromLocation?.pathname, toLocation.pathname)]
-          : false,
+      types: ({ fromLocation, toLocation, pathChanged }) => {
+        if (!pathChanged) return false
+        const motion = navigationMotion(
+          fromLocation?.pathname,
+          toLocation.pathname
+        )
+        // 공통 탭바가 있는 탭 이동은 DOM을 그대로 유지하고 스냅샷 전환을 생략한다.
+        return motion === "app-tab" ? false : [motion]
+      },
     },
   })
 

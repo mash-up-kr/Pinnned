@@ -30,7 +30,7 @@ function BottomNav({
     <nav
       aria-label="주요 메뉴"
       className={cn(
-        "relative mx-auto w-[310px] [view-transition-class:app-screen] [view-transition-name:app-bottom-nav]",
+        "relative mx-auto w-[310px] [view-transition-name:app-bottom-nav]",
         className
       )}
       {...props}

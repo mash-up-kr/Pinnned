@@ -83,7 +83,13 @@ function DesktopAside() {
  * 1440px 이상에서만 좌측 브랜딩·티켓과 우측 아이폰 프레임을 만들고, 프레임에
  * transform을 걸어 앱의 `position: fixed` 오버레이가 프레임 밖으로 새지 않게 한다.
  */
-export function DesktopGuide({ children }: { children: ReactNode }) {
+export function DesktopGuide({
+  children,
+  bottomNav,
+}: {
+  children: ReactNode
+  bottomNav?: ReactNode
+}) {
   // 바텀시트·모달(Radix Portal)이 프레임 밖으로 새지 않도록 컨테이너로 넘긴다.
   // 프레임이 꺼진 기기에서는 display:contents라 body에 붙는 것과 동작이 같다.
   const [frame, setFrame] = React.useState<HTMLDivElement | null>(null)
@@ -106,6 +112,7 @@ export function DesktopGuide({ children }: { children: ReactNode }) {
             {children}
           </PortalContainerProvider>
         </div>
+        {bottomNav}
         <PhoneChrome />
       </div>
     </div>
