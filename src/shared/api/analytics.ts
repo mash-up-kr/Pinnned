@@ -163,6 +163,8 @@ function markSessionStarted(): void {
 }
 
 function analyticsUrl(): string {
+  // 로컬 개발 기록이 운영 지표에 섞이지 않게 GA4와 같이 운영 빌드에서만 보낸다.
+  if (!import.meta.env.PROD) return ""
   const baseUrl = import.meta.env.VITE_ANALYTICS_API_URL as string | undefined
   return baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/events` : ""
 }

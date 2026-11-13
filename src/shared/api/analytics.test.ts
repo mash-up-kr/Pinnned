@@ -16,6 +16,7 @@ describe("analytics client", () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
+    vi.stubEnv("PROD", true)
     vi.stubEnv(
       "VITE_ANALYTICS_API_URL",
       "https://pinnned-analytics-production.up.railway.app"
@@ -47,6 +48,13 @@ describe("analytics client", () => {
     expect(first.anonymousId).toBe(second.anonymousId)
     expect(first.sessionId).toBe(second.sessionId)
     expect(first.eventId).not.toBe(second.eventId)
+  })
+
+  it("does not send to the analytics API outside production builds", async () => {
+    vi.stubEnv("PROD", false)
+    trackEvent("page_view")
+    await Promise.resolve()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("does not block or reject when analytics is unavailable", async () => {
