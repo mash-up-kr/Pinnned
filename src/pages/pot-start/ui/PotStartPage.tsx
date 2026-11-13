@@ -11,6 +11,7 @@ import { openOnboardingOverlay } from "@/features/onboarding"
 import {
   getPendingInviteCode,
   setPendingInviteCode,
+  trackInviteLinkOpened,
   useMyPots,
 } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
@@ -60,7 +61,10 @@ export function PotStartPage({ inviteCode }: { inviteCode?: string }) {
   React.useEffect(() => {
     const code = inviteCode ?? getPendingInviteCode()
     if (code) {
-      if (inviteCode) setPendingInviteCode(inviteCode)
+      if (inviteCode) {
+        setPendingInviteCode(inviteCode)
+        trackInviteLinkOpened(inviteCode)
+      }
       router.navigate({
         to: "/pot-join",
         search: { inviteCode: code },

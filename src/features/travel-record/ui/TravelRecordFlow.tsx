@@ -26,6 +26,7 @@ import {
 import { formatRegionName, useRegionColorStore } from "@/entities/region"
 import { usePotStore } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
+import { trackEvent } from "@/shared/api/analytics"
 import { cn } from "@/shared/lib/utils"
 import { ButtonCta } from "@/shared/ui/button-cta"
 import { ButtonIcon } from "@/shared/ui/button-icon"
@@ -105,6 +106,11 @@ export function TravelRecordFlow({
 
   const keyword = findKeyword(keywordId ?? undefined)
   const regionName = formatRegionName(region)
+
+  // 기록 완료율(travel_record_created ÷ started)의 분모. 지역마다 플로우가 새로 마운트된다.
+  React.useEffect(() => {
+    trackEvent("travel_record_started", { metadata: { region } })
+  }, [region])
 
   React.useEffect(() => {
     if (!collaborationTrip) return

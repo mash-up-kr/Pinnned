@@ -3,14 +3,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { initializeGoogleAnalytics } from "./google-analytics"
 
-const { initializeAnalyticsMock, logEventMock } = vi.hoisted(() => ({
-  initializeAnalyticsMock: vi.fn(),
-  logEventMock: vi.fn(),
-}))
+const { initializeAnalyticsMock, logEventMock, setUserPropertiesMock } =
+  vi.hoisted(() => ({
+    initializeAnalyticsMock: vi.fn(),
+    logEventMock: vi.fn(),
+    setUserPropertiesMock: vi.fn(),
+  }))
 
 vi.mock("firebase/analytics", () => ({
   initializeAnalytics: initializeAnalyticsMock,
   logEvent: logEventMock,
+  setUserProperties: setUserPropertiesMock,
 }))
 
 const FIREBASE_ENV = {
@@ -60,9 +63,15 @@ describe("Google Analytics initialization", () => {
       expect(document.querySelectorAll("#google-analytics")).toHaveLength(1)
       expect(window.dataLayer?.map((command) => command[0])).toEqual([
         "js",
+        "set",
         "config",
       ])
       expect(Array.from(window.dataLayer![1])).toEqual([
+        "set",
+        "user_properties",
+        { app_platform: "web" },
+      ])
+      expect(Array.from(window.dataLayer![2])).toEqual([
         "config",
         "G-0D3HZ92ZME",
         { page_referrer: "" },
@@ -80,7 +89,7 @@ describe("Google Analytics initialization", () => {
       "https://www.pinnned.co.kr/login/callback?code=private-code"
     )
     initializeGoogleAnalytics()
-    expect(window.dataLayer?.[1][2]).toEqual({
+    expect(window.dataLayer?.[2][2]).toEqual({
       page_referrer: "https://www.pinnned.co.kr",
     })
   })
@@ -107,8 +116,25 @@ describe("Google Analytics initialization", () => {
     expect(initializeAnalyticsMock.mock.calls[0][1]).toEqual({
       config: { page_referrer: "https://www.pinnned.co.kr" },
     })
+    expect(setUserPropertiesMock).toHaveBeenCalledWith(
+      { app: "analytics" },
+      { app_platform: "web" }
+    )
     expect(window.gtag).toBeUndefined()
     expect(document.getElementById("google-analytics")).toBeNull()
+  })
+
+  it("marks visits from the Pinnned app WebView as app", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 PinnnedApp"
+    )
+    const ga = await freshModule()
+    ga.initializeGoogleAnalytics()
+    expect(Array.from(window.dataLayer![1])).toEqual([
+      "set",
+      "user_properties",
+      { app_platform: "app" },
+    ])
   })
 
   it("does not access browser APIs during SSR", () => {

@@ -1,10 +1,16 @@
-import { initializeAnalytics, logEvent } from "firebase/analytics"
+import {
+  initializeAnalytics,
+  logEvent,
+  setUserProperties,
+} from "firebase/analytics"
 
 import { getFirebaseApp } from "./firebase"
 import type { Analytics } from "firebase/analytics"
 
 const MEASUREMENT_ID = "G-0D3HZ92ZME"
 const SCRIPT_ID = "google-analytics"
+// udumeoli-app WebView가 User-Agent 끝에 붙이는 표시 (applicationNameForUserAgent)
+const APP_USER_AGENT_MARKER = "PinnnedApp"
 
 type EventParams = Record<string, string | number | boolean | null>
 
@@ -17,6 +23,11 @@ declare global {
     dataLayer?: Array<IArguments>
     gtag?: (...args: Array<unknown>) => void
   }
+}
+
+/** 앱(WebView)과 웹 사용자를 나눠 보도록 GA4 사용자 속성 app_platform에 넣는 값. */
+export function appPlatform(): "app" | "web" {
+  return navigator.userAgent.includes(APP_USER_AGENT_MARKER) ? "app" : "web"
 }
 
 /**
@@ -48,6 +59,7 @@ export function initializeGoogleAnalytics(): boolean {
     firebaseAnalytics = initializeAnalytics(app, {
       config: { page_referrer: pageReferrer },
     })
+    setUserProperties(firebaseAnalytics, { app_platform: appPlatform() })
     flushPendingEvents()
     return true
   }
@@ -58,6 +70,8 @@ export function initializeGoogleAnalytics(): boolean {
     dataLayer.push(arguments)
   }
   window.gtag("js", new Date())
+  // config보다 먼저 설정해야 첫 page_view에도 사용자 속성이 붙는다
+  window.gtag("set", "user_properties", { app_platform: appPlatform() })
   window.gtag("config", MEASUREMENT_ID, { page_referrer: pageReferrer })
 
   const script = document.createElement("script")

@@ -17,6 +17,7 @@ import {
   TicketPrintStage,
   inviteLinkFor,
   inviteQrValueFor,
+  trackInviteShared,
   useCreateParty,
   usePotStore,
 } from "@/entities/travel-pot"
@@ -40,6 +41,7 @@ function CreatedStep({
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ text: link })
+        trackInviteShared("share_sheet", "pot_created")
       } catch (error) {
         if (!(error instanceof Error && error.name === "AbortError")) {
           showToast({
@@ -52,6 +54,7 @@ function CreatedStep({
       return
     }
     await copyText(link, "초대 링크가 복사됐어요", "bottom-[106px]")
+    trackInviteShared("copy_link", "pot_created")
   }
 
   return (
