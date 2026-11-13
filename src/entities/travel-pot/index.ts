@@ -37,6 +37,7 @@ export {
   takePendingInviteCode,
 } from "./lib/pending-invite"
 export { inviteLinkFor, inviteQrValueFor } from "./lib/invite-link"
+export { trackInviteLinkOpened, trackInviteShared } from "./lib/invite-tracking"
 export { MOCK_POTS, TRIP_100_POT } from "./api/pot.mock"
 export { TicketCard } from "./ui/TicketCard"
 export { TicketPrintStage } from "./ui/TicketPrintStage"

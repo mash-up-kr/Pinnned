@@ -4,10 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { trackEvent } from "./analytics"
 
+const { sendGoogleAnalyticsEventMock } = vi.hoisted(() => ({
+  sendGoogleAnalyticsEventMock: vi.fn(),
+}))
+
+vi.mock("./google-analytics", () => ({
+  sendGoogleAnalyticsEvent: sendGoogleAnalyticsEventMock,
+}))
+
 describe("analytics client", () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
+    vi.stubEnv("PROD", true)
     vi.stubEnv(
       "VITE_ANALYTICS_API_URL",
       "https://pinnned-analytics-production.up.railway.app"
@@ -39,6 +48,13 @@ describe("analytics client", () => {
     expect(first.anonymousId).toBe(second.anonymousId)
     expect(first.sessionId).toBe(second.sessionId)
     expect(first.eventId).not.toBe(second.eventId)
+  })
+
+  it("does not send to the analytics API outside production builds", async () => {
+    vi.stubEnv("PROD", false)
+    trackEvent("page_view")
+    await Promise.resolve()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("does not block or reject when analytics is unavailable", async () => {
@@ -91,5 +107,18 @@ describe("analytics client", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("signal")
     expect(fetchMock.mock.calls[1][1]).not.toHaveProperty("signal")
+  })
+
+  it("sends service events to GA4 once, but leaves page_view and session_started to GA4 auto collection", () => {
+    sendGoogleAnalyticsEventMock.mockClear()
+
+    trackEvent("page_view")
+    trackEvent("map_viewed", { metadata: { region: "seoul" } })
+    trackEvent("pot_created")
+
+    expect(sendGoogleAnalyticsEventMock.mock.calls).toEqual([
+      ["map_viewed", { region: "seoul" }],
+      ["pot_created", {}],
+    ])
   })
 })

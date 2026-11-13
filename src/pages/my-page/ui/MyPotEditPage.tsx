@@ -11,6 +11,7 @@ import {
 } from "@/entities/photo"
 import {
   inviteLinkFor,
+  trackInviteShared,
   useDeleteParty,
   useLeaveParty,
   usePotStore,
@@ -256,12 +257,14 @@ function MyPotEditContent({ potId }: { potId: string }) {
 
   const handleCopyCode = async () => {
     await copyText(pot.inviteCode, "초대코드가 복사됐어요")
+    trackInviteShared("copy_code", "my_pot")
   }
 
   const handleShareInvite = async () => {
     const link = inviteLinkFor(pot.inviteCode)
     if (typeof navigator.share !== "function") {
       await copyText(link, "초대 링크가 복사됐어요")
+      trackInviteShared("copy_link", "my_pot")
       return
     }
 
@@ -271,6 +274,7 @@ function MyPotEditContent({ potId }: { potId: string }) {
       await navigator.share({
         text: `${pot.name} 여행팟에 초대합니다.\n${link}`,
       })
+      trackInviteShared("share_sheet", "my_pot")
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError")) {
         showToast({

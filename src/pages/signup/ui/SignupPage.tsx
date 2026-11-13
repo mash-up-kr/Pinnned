@@ -9,6 +9,7 @@ import { PRESET_AVATARS, Profile } from "@/shared/ui/profile"
 import { TextField } from "@/shared/ui/text-field"
 import { openModal } from "@/shared/ui/modal"
 import { showToast } from "@/shared/ui/toast"
+import { trackEvent } from "@/shared/api/analytics"
 import { USE_MOCK } from "@/shared/api/client"
 import { setTokens } from "@/shared/api/token-storage"
 import { landingToastClassName } from "@/shared/lib/landing-toast"
@@ -269,6 +270,7 @@ export function SignupPage() {
         })
         setTokens(tokens)
         clearSignupToken()
+        trackEvent("signup_completed")
         const saved = await fetchMe()
         // 커스텀 이미지는 프리셋 번호 매핑이 없어 blob URL로 표시 유지
         user = customImage ? { ...saved, profileImageUrl: customImage } : saved
