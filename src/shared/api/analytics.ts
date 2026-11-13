@@ -1,3 +1,5 @@
+import { sendGoogleAnalyticsEvent } from "./google-analytics"
+
 const ANONYMOUS_ID_KEY = "udumeoli:analytics:anonymous-id"
 const SESSION_ID_KEY = "udumeoli:analytics:session-id"
 const SESSION_STARTED_KEY = "udumeoli:analytics:session-started"
@@ -204,7 +206,10 @@ function buildPayload(
   }
 }
 
-/** 호출을 막거나 reject하지 않는 fire-and-forget 분석 이벤트 전송. */
+/**
+ * 호출을 막거나 reject하지 않는 fire-and-forget 분석 이벤트 전송.
+ * 자체 분석 API와 GA4에 한 번씩 보낸다 (page_view·session_started는 GA4가 자동 수집하므로 자체 API에만).
+ */
 export function trackEvent(eventName: string, data: TrackEventData = {}): void {
   if (typeof window === "undefined") return
 
@@ -214,4 +219,5 @@ export function trackEvent(eventName: string, data: TrackEventData = {}): void {
     void send(buildPayload("session_started"))
   }
   void send(buildPayload(eventName, metadata))
+  if (eventName !== "page_view") sendGoogleAnalyticsEvent(eventName, metadata)
 }

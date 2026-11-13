@@ -3,12 +3,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { initializeGoogleAnalytics } from "./google-analytics"
 
-const { initializeAnalyticsMock } = vi.hoisted(() => ({
+const { initializeAnalyticsMock, logEventMock } = vi.hoisted(() => ({
   initializeAnalyticsMock: vi.fn(),
+  logEventMock: vi.fn(),
 }))
 
 vi.mock("firebase/analytics", () => ({
   initializeAnalytics: initializeAnalyticsMock,
+  logEvent: logEventMock,
 }))
 
 const FIREBASE_ENV = {
@@ -90,6 +92,7 @@ describe("Google Analytics initialization", () => {
     vi.spyOn(document, "referrer", "get").mockReturnValue(
       "https://www.pinnned.co.kr/login/callback?code=private-code"
     )
+    initializeAnalyticsMock.mockReturnValue({ app: "analytics" })
 
     expect(initializeGoogleAnalytics()).toBe(true)
     // SDK가 넘겨준 config 객체를 초기화 중 제자리에서 바꾼다(firebase_origin·update·firebase_id 추가).
@@ -111,5 +114,86 @@ describe("Google Analytics initialization", () => {
   it("does not access browser APIs during SSR", () => {
     vi.stubGlobal("window", undefined)
     expect(initializeGoogleAnalytics).not.toThrow()
+  })
+})
+
+// 모듈 상태(초기화 여부·대기 이벤트)를 테스트마다 새로 시작한다.
+async function freshModule() {
+  vi.resetModules()
+  return import("./google-analytics")
+}
+
+describe("Google Analytics custom events", () => {
+  beforeEach(() => {
+    vi.stubEnv("PROD", true)
+    window.history.replaceState(null, "", "/")
+  })
+
+  afterEach(() => {
+    document.getElementById("google-analytics")?.remove()
+    delete window.dataLayer
+    delete window.gtag
+    vi.unstubAllEnvs()
+    initializeAnalyticsMock.mockReset()
+    logEventMock.mockReset()
+  })
+
+  const gtagEvents = () =>
+    (window.dataLayer ?? [])
+      .map((command) => Array.from(command))
+      .filter((command) => command[0] === "event")
+
+  it("sends the event once with its params through gtag", async () => {
+    const ga = await freshModule()
+    ga.initializeGoogleAnalytics()
+    ga.sendGoogleAnalyticsEvent("travel_record_created", { region: "seoul" })
+
+    expect(gtagEvents()).toEqual([
+      ["event", "travel_record_created", { region: "seoul" }],
+    ])
+  })
+
+  it("holds events from the login callback until GA loads, then sends them once", async () => {
+    const ga = await freshModule()
+    window.history.replaceState(null, "", "/login/callback?code=private-code")
+    expect(ga.initializeGoogleAnalytics()).toBe(false)
+    ga.sendGoogleAnalyticsEvent("login_completed")
+    expect(window.dataLayer).toBeUndefined()
+
+    window.history.replaceState(null, "", "/map-google")
+    ga.initializeGoogleAnalytics()
+    ga.initializeGoogleAnalytics()
+
+    expect(gtagEvents()).toEqual([["event", "login_completed", {}]])
+  })
+
+  it("uses Firebase logEvent when Firebase Analytics is configured", async () => {
+    vi.stubEnv("VITE_FIREBASE_API_KEY", "test-api-key")
+    vi.stubEnv("VITE_FIREBASE_PROJECT_ID", "test-project")
+    vi.stubEnv("VITE_FIREBASE_APP_ID", "1:1:web:test")
+    const instance = { app: "analytics" }
+    initializeAnalyticsMock.mockReturnValue(instance)
+    const ga = await freshModule()
+
+    ga.sendGoogleAnalyticsEvent("pot_created")
+    expect(logEventMock).not.toHaveBeenCalled()
+    ga.initializeGoogleAnalytics()
+    ga.sendGoogleAnalyticsEvent("pot_joined")
+
+    expect(logEventMock.mock.calls).toEqual([
+      [instance, "pot_created", {}],
+      [instance, "pot_joined", {}],
+    ])
+    expect(window.gtag).toBeUndefined()
+  })
+
+  it("does nothing outside production", async () => {
+    vi.stubEnv("PROD", false)
+    const ga = await freshModule()
+    ga.sendGoogleAnalyticsEvent("pot_created")
+    vi.stubEnv("PROD", true)
+    ga.initializeGoogleAnalytics()
+
+    expect(gtagEvents()).toEqual([])
   })
 })
