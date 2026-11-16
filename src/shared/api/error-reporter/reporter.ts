@@ -104,7 +104,13 @@ function send(report: ErrorReport): void {
 function enqueue(partial: Omit<ErrorReport, keyof BaseFields>): void {
   if (!state.enabled) return
   if (state.sentCount >= MAX_REPORTS_PER_SESSION) return
-  if (shouldIgnoreError({ message: partial.message, stack: partial.stack }))
+  if (
+    shouldIgnoreError({
+      message: partial.message,
+      name: partial.name,
+      stack: partial.stack,
+    })
+  )
     return
 
   const key = `${partial.kind}|${partial.api?.name ?? partial.message}|${partial.stack?.split("\n")[1] ?? ""}`
