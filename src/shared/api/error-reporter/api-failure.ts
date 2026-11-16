@@ -5,6 +5,9 @@ import { reportApiFailure } from "./reporter"
 /** 토큰 만료 401은 authFetch가 refresh로 처리하는 정상 흐름이다. */
 const IGNORED_GRAPHQL_STATUSES = new Set([401])
 
+/** 비로그인 진입 시 me·myParties 등이 내는 UNAUTHENTICATED는 RequireAuth가 처리하는 정상 흐름이다. */
+const IGNORED_GRAPHQL_CODES = new Set(["UNAUTHENTICATED"])
+
 /**
  * graphql-request의 responseMiddleware에 그대로 넘긴다. GraphQL 에러·5xx·네트워크 실패만 보고한다.
  * 정상 응답 객체는 ClientError도 Error도 아니므로 아무것도 하지 않는다.
@@ -21,6 +24,7 @@ export function reportGraphQLResponse(
     const extensions = response.response.errors?.[0]?.extensions as
       | { code?: string }
       | undefined
+    if (extensions?.code && IGNORED_GRAPHQL_CODES.has(extensions.code)) return
     reportApiFailure(
       { protocol: "graphql", name, status, code: extensions?.code },
       response

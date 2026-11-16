@@ -52,6 +52,14 @@ describe("reportGraphQLResponse", () => {
     expect(reportApiFailureMock).not.toHaveBeenCalled()
   })
 
+  it("UNAUTHENTICATED는 200이어도 정상 흐름(비로그인 진입)이라 보고하지 않는다", () => {
+    reportGraphQLResponse(clientError(200, "UNAUTHENTICATED"), {
+      operationName: "Me",
+    })
+
+    expect(reportApiFailureMock).not.toHaveBeenCalled()
+  })
+
   it("네트워크 실패(fetch throw)는 status 없이 보고한다", () => {
     reportGraphQLResponse(new TypeError("Failed to fetch"), {
       operationName: "MyPots",
