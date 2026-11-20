@@ -1,6 +1,6 @@
 name: Weekly Triage Merged
 
-# weekly-triage 라벨이 붙은 PR이 머지되면 본문의 노션 QA 행을 "해결"로 바꾼다. 이슈는 PR 본문 `close #n`으로 GitHub가 닫는다.
+# weekly-triage 라벨이 붙은 PR이 머지되면 본문의 노션 QA 행을 "해결"로 바꾸고 행 본문에 해결 내용(문제·해결·검증·PR)을 남긴다. 이슈는 PR 본문 `close #n`으로 GitHub가 닫는다.
 on:
   pull_request:
     types: [closed]
@@ -27,6 +27,7 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_QA_DB_ID: ${{ secrets.NOTION_QA_DB_ID }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
-          node scripts/qa-notion.mjs resolve --pr-body-file "$RUNNER_TEMP/pr-body.md"
+          node scripts/qa-notion.mjs resolve --pr-body-file "$RUNNER_TEMP/pr-body.md" --pr-url "$PR_URL"

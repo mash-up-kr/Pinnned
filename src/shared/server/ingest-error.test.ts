@@ -63,7 +63,12 @@ describe("ingestErrorReport", () => {
   })
 
   it("기존 행이면 횟수를 올린다", async () => {
-    const notion = notionMock({ pageId: "p", count: 3, progress: "Todo" })
+    const notion = notionMock({
+      pageId: "p",
+      count: 3,
+      progress: "Todo",
+      url: "https://notion.so/p",
+    })
 
     await ingestErrorReport(REPORT, { notion, fetchMap: noMap })
 
@@ -72,16 +77,23 @@ describe("ingestErrorReport", () => {
       count: 4,
       occurredAt: REPORT.occurredAt,
       environment: "기타 · 기타 · 390x844 · v1234567",
-      reopen: false,
     })
   })
 
-  it("Done 처리된 행에 다시 들어오면 reopen으로 Todo로 되돌린다", async () => {
-    const notion = notionMock({ pageId: "p", count: 9, progress: "Done" })
+  it("Done 처리된 행뿐이면 그 행은 두고, 이전 행 링크를 단 새 행을 만든다(재발)", async () => {
+    const notion = notionMock({
+      pageId: "p",
+      count: 9,
+      progress: "Done",
+      url: "https://notion.so/p",
+    })
 
     await ingestErrorReport(REPORT, { notion, fetchMap: noMap })
 
-    expect(notion.bumpRow.mock.calls[0][1].reopen).toBe(true)
+    expect(notion.bumpRow).not.toHaveBeenCalled()
+    expect(notion.createRow.mock.calls[0][0].causeSummary).toBe(
+      "[재발] 이전 해결 행: https://notion.so/p"
+    )
   })
 
   it("소스맵 조회가 실패해도 원본 스택으로 기록한다", async () => {

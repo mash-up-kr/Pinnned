@@ -24,9 +24,13 @@ export const QA_PROPS = {
 } as const
 
 export interface QaNotionClient {
-  findByFingerprint: (
-    fingerprint: string
-  ) => Promise<{ pageId: string; count: number; progress: string } | null>
+  /** 같은 지문의 행. Todo 행이 있으면 그 행, 없으면 가장 최근에 해결된(Done) 행. */
+  findByFingerprint: (fingerprint: string) => Promise<{
+    pageId: string
+    count: number
+    progress: string
+    url: string
+  } | null>
   createRow: (input: {
     title: string
     /** 현상(실제 결과) — 사용자 관점 한 문장 */
@@ -40,6 +44,8 @@ export interface QaNotionClient {
     /** "iPhone · Safari · 390x844 · v1234567" */
     environment: string
     occurredAt: string
+    /** 재발 행이면 이전 해결 행을 가리키는 한 줄 */
+    causeSummary?: string
     /** 페이지 본문 블록 (row-content.ts가 만든다) */
     children: Array<unknown>
   }) => Promise<void>
@@ -49,8 +55,6 @@ export interface QaNotionClient {
       count: number
       occurredAt: string
       environment: string
-      /** true면 Done이던 행을 Todo로 되돌리고 원인 요약에 재발을 적는다 */
-      reopen: boolean
     }
   ) => Promise<void>
 }
@@ -75,6 +79,7 @@ const date = (iso: string) => ({
 interface QueryResult {
   results: Array<{
     id: string
+    url: string
     properties: Partial<
       Record<
         string,
@@ -121,15 +126,21 @@ export function createQaNotionClient(
             property: QA_PROPS.fingerprint,
             rich_text: { equals: fingerprint },
           },
-          page_size: 1,
+          sorts: [{ property: QA_PROPS.lastSeen, direction: "descending" }],
+          page_size: 10,
         }
       )
-      const page = data?.results[0]
+      const progressOf = (page: QueryResult["results"][number]) =>
+        page.properties[QA_PROPS.progress]?.select?.name ?? ""
+      // 해결된 행은 닫힌 기록으로 두므로, 재발하면 같은 지문의 행이 여러 개가 된다
+      const page =
+        data?.results.find((p) => progressOf(p) !== "Done") ?? data?.results[0]
       if (!page) return null
       return {
         pageId: page.id,
         count: page.properties[QA_PROPS.count]?.number ?? 0,
-        progress: page.properties[QA_PROPS.progress]?.select?.name ?? "",
+        progress: progressOf(page),
+        url: page.url,
       }
     },
 
@@ -147,6 +158,8 @@ export function createQaNotionClient(
         [QA_PROPS.fingerprint]: text(input.fingerprint),
       }
       if (input.screen) properties[QA_PROPS.screen] = text(input.screen)
+      if (input.causeSummary)
+        properties[QA_PROPS.causeSummary] = text(input.causeSummary)
 
       await call("POST", "/pages", {
         parent: { database_id: env.databaseId },
@@ -160,12 +173,6 @@ export function createQaNotionClient(
         [QA_PROPS.count]: { number: input.count },
         [QA_PROPS.lastSeen]: date(input.occurredAt),
         [QA_PROPS.environment]: text(input.environment),
-      }
-      if (input.reopen) {
-        properties[QA_PROPS.progress] = select("Todo")
-        properties[QA_PROPS.causeSummary] = text(
-          "[재발] 해결 처리 후 다시 발생 — 원인 재확인 필요"
-        )
       }
       await call("PATCH", `/pages/${pageId}`, { properties })
     },

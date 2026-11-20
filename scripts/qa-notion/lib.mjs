@@ -63,6 +63,8 @@ export function buildListFilter(since, until) {
         or: [
           { property: "마지막 발생", date: { on_or_after: since } },
           { property: "원인 요약", rich_text: { is_empty: true } },
+          // 지난 보류 행 — 이번 주 행과 합쳐야 보이는 패턴이 있다
+          { property: "원인 요약", rich_text: { starts_with: "[보류]" } },
         ],
       },
       { property: "마지막 발생", date: { before: until } },
@@ -78,6 +80,58 @@ export function extractNotionPageIds(text) {
   for (const match of text.matchAll(pattern))
     ids.add(match[1].replaceAll("-", "").toLowerCase())
   return [...ids]
+}
+
+/**
+ * 트리아지 PR 본문의 "### <원인 한 줄>" 묶음마다 원인·수정·검증 줄과 그 묶음의 노션 행을 뽑는다.
+ * 노션 링크가 없는 묶음은 버린다.
+ */
+export function parseResolutions(prBody) {
+  return prBody
+    .split(/^### /m)
+    .slice(1)
+    .map((section) => {
+      const [heading, ...rest] = section.split("\n")
+      const body = rest.join("\n").split(/^## /m)[0]
+      const line = (label) =>
+        body.match(new RegExp(`^- ${label}:[ \\t]*(.+)$`, "m"))?.[1].trim() ??
+        ""
+      return {
+        title: heading.trim(),
+        cause: line("원인"),
+        fix: line("수정"),
+        verify: line("검증"),
+        pageIds: extractNotionPageIds(body),
+      }
+    })
+    .filter((resolution) => resolution.pageIds.length > 0)
+}
+
+/** 해결된 행 본문 끝에 붙일 블록: 문제가 뭐였고 어떻게 고쳤는지. 빈 항목은 뺀다. */
+export function buildResolutionBlocks(resolution, prUrl) {
+  const block = (type, content) => ({
+    object: "block",
+    type,
+    [type]: {
+      rich_text: [
+        { type: "text", text: { content: content.slice(0, RICH_TEXT_LIMIT) } },
+      ],
+    },
+  })
+  const items = [
+    ["문제", [resolution.title, resolution.cause].filter(Boolean).join(" — ")],
+    ["해결", resolution.fix],
+    ["검증", resolution.verify],
+    ["PR", prUrl ?? ""],
+  ]
+  return [
+    block("heading_3", "해결 내용"),
+    ...items
+      .filter(([, value]) => value)
+      .map(([label, value]) =>
+        block("bulleted_list_item", `${label}: ${value}`)
+      ),
+  ]
 }
 
 const plain = (rich) => (rich ?? []).map((r) => r.plain_text ?? "").join("")

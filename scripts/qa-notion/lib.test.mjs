@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildListFilter,
+  buildResolutionBlocks,
   createDbProperties,
   extractNotionPageIds,
   flattenPage,
+  parseResolutions,
   toNotionProperty,
 } from "./lib.mjs"
 
@@ -126,7 +128,7 @@ describe("createDbProperties", () => {
 })
 
 describe("buildListFilter", () => {
-  it("진행=Todo 이면서 (기간 내 발생 OR 분석 전), until은 배타", () => {
+  it("진행=Todo 이면서 (기간 내 발생 OR 분석 전 OR 지난 보류), until은 배타", () => {
     const filter = buildListFilter(
       "2026-11-03T00:00:00+09:00",
       "2026-11-10T00:00:00+09:00"
@@ -141,6 +143,7 @@ describe("buildListFilter", () => {
               date: { on_or_after: "2026-11-03T00:00:00+09:00" },
             },
             { property: "원인 요약", rich_text: { is_empty: true } },
+            { property: "원인 요약", rich_text: { starts_with: "[보류]" } },
           ],
         },
         {
@@ -181,5 +184,56 @@ describe("flattenPage", () => {
         },
       }).manual
     ).toBe(false)
+  })
+})
+
+describe("parseResolutions · buildResolutionBlocks", () => {
+  const PR_BODY = [
+    "## 📝 작업 내용",
+    "",
+    "### View transition 노이즈",
+    "- 증상: 노션 행 2개 — https://app.notion.com/p/417379ef2f0d81a99e78e7e0540e98f5 , https://app.notion.com/p/417379ef2f0d81b0b308c53efcefe672",
+    "- 원인: `filter.ts:2-6` — name을 안 봄",
+    "- 수정: name도 검사",
+    "- 검증: 테스트 추가",
+    "",
+    "### 링크 없는 묶음",
+    "- 원인: x",
+    "",
+    "## 💬 추가 설명",
+    "",
+    "- 보류: https://app.notion.com/p/417379ef2f0d81179231d8dbb986c27c",
+  ].join("\n")
+
+  it("묶음마다 원인·수정·검증과 그 묶음의 노션 행만 뽑는다 (다음 섹션 링크는 제외)", () => {
+    expect(parseResolutions(PR_BODY)).toEqual([
+      {
+        title: "View transition 노이즈",
+        cause: "`filter.ts:2-6` — name을 안 봄",
+        fix: "name도 검사",
+        verify: "테스트 추가",
+        pageIds: [
+          "417379ef2f0d81a99e78e7e0540e98f5",
+          "417379ef2f0d81b0b308c53efcefe672",
+        ],
+      },
+    ])
+  })
+
+  it("해결 내용 블록은 제목 + 문제·해결·검증·PR, 빈 항목은 뺀다", () => {
+    const [resolution] = parseResolutions(PR_BODY)
+    const texts = (blocks) =>
+      blocks.map((b) => b[b.type].rich_text[0].text.content)
+
+    expect(texts(buildResolutionBlocks(resolution, "https://pr/1"))).toEqual([
+      "해결 내용",
+      "문제: View transition 노이즈 — `filter.ts:2-6` — name을 안 봄",
+      "해결: name도 검사",
+      "검증: 테스트 추가",
+      "PR: https://pr/1",
+    ])
+    expect(
+      texts(buildResolutionBlocks({ ...resolution, verify: "" }, undefined))
+    ).toHaveLength(3)
   })
 })
