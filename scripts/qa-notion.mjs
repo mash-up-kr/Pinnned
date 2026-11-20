@@ -3,15 +3,17 @@
 //   node scripts/qa-notion.mjs create-db --parent <pageId>            DB 생성, ID 출력
 //   node scripts/qa-notion.mjs list --since <ISO> --until <ISO>        주간 대상 행 JSON 배열
 //   node scripts/qa-notion.mjs update <pageId> --json '{"원인 요약":"...","FE 이슈":"<url>"}'
-//   node scripts/qa-notion.mjs resolve --pr-body-file <path>           본문의 노션 링크 행을 Done으로
+//   node scripts/qa-notion.mjs resolve --pr-body-file <path> [--pr-url <url>]   본문의 노션 링크 행을 Done으로 + 해결 내용 기록
 import { readFileSync } from "node:fs"
 
 import {
   buildListFilter,
+  buildResolutionBlocks,
   createDbProperties,
   createNotionApi,
   extractNotionPageIds,
   flattenPage,
+  parseResolutions,
   toNotionProperty,
 } from "./qa-notion/lib.mjs"
 
@@ -111,13 +113,21 @@ const commands = {
   async resolve() {
     const file =
       flags["pr-body-file"] ?? fail("--pr-body-file <path>가 필요하다")
-    const ids = extractNotionPageIds(readFileSync(file, "utf8"))
+    const body = readFileSync(file, "utf8")
+    const ids = extractNotionPageIds(body)
     if (ids.length === 0) return console.log("노션 링크 없음")
+    const resolutions = parseResolutions(body)
     for (const id of ids) {
       try {
         await api.call("PATCH", `/pages/${id}`, {
           properties: { 진행: toNotionProperty("진행", "Done") },
         })
+        // 행 본문 끝에 무엇이 문제였고 어떻게 고쳤는지 남긴다 (묶음 밖 링크는 Done만)
+        const resolution = resolutions.find((r) => r.pageIds.includes(id))
+        if (resolution)
+          await api.call("PATCH", `/blocks/${id}/children`, {
+            children: buildResolutionBlocks(resolution, flags["pr-url"]),
+          })
         console.log(`Done: ${id}`)
       } catch (error) {
         // 링크 하나가 DB 자체나 보관된 페이지여도 나머지 행은 계속 처리한다
