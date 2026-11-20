@@ -26,6 +26,7 @@ const repository = env("REPOSITORY")
 const prNumber = env("PR_NUMBER")
 const wikiRepo = env("WIKI_REPO")
 const model = process.env.GEMINI_MODEL || "gemini-3.5-flash"
+const FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 const gh = (args, input) =>
   execFileSync("gh", args, {
@@ -83,51 +84,66 @@ ${buildWikiText(pages)}
 
 ${diffText.slice(0, MAX_DIFF_CHARS)}`
 
-const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": env("GEMINI_API_KEY"),
-    },
-    signal: AbortSignal.timeout(180_000),
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            findings: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  path: { type: "STRING" },
-                  line: { type: "INTEGER" },
-                  page: { type: "STRING" },
-                  ref: { type: "STRING" },
-                  quote: { type: "STRING" },
-                  comment: { type: "STRING" },
-                },
-                required: ["path", "line", "page", "quote", "comment"],
-              },
+const requestBody = JSON.stringify({
+  contents: [{ role: "user", parts: [{ text: prompt }] }],
+  generationConfig: {
+    temperature: 0,
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: "OBJECT",
+      properties: {
+        findings: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              path: { type: "STRING" },
+              line: { type: "INTEGER" },
+              page: { type: "STRING" },
+              ref: { type: "STRING" },
+              quote: { type: "STRING" },
+              comment: { type: "STRING" },
             },
+            required: ["path", "line", "page", "quote", "comment"],
           },
-          required: ["findings"],
         },
       },
-    }),
-  }
-)
-if (!response.ok)
-  throw new Error(
-    `Gemini ${response.status}: ${(await response.text()).slice(0, 500)}`
-  )
+      required: ["findings"],
+    },
+  },
+})
 
-const data = await response.json()
+// 과부하(429·5xx)는 흔하다 — 모델마다 3번까지 기다렸다 다시 부르고, 그래도 안 되면 예비 모델로 넘어간다
+async function generate() {
+  let lastError = ""
+  for (const name of [...new Set([model, FALLBACK_MODEL])]) {
+    for (const waitSeconds of [0, 10, 30]) {
+      if (waitSeconds)
+        await new Promise((r) => setTimeout(r, waitSeconds * 1000))
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": env("GEMINI_API_KEY"),
+          },
+          signal: AbortSignal.timeout(180_000),
+          body: requestBody,
+        }
+      )
+      if (response.ok) {
+        console.log(`모델: ${name}`)
+        return response.json()
+      }
+      lastError = `Gemini ${name} ${response.status}: ${(await response.text()).slice(0, 300)}`
+      if (response.status !== 429 && response.status < 500) break
+    }
+  }
+  throw new Error(lastError)
+}
+
+const data = await generate()
 const raw =
   data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? ""
 const findings = JSON.parse(raw || '{"findings":[]}').findings
