@@ -33,12 +33,21 @@ const KST_10 = {
 describe("createQaNotionClient", () => {
   afterEach(() => fetchMock.mockReset())
 
-  it("findByFingerprint는 지문으로 DB를 조회해 행 정보를 돌려준다", async () => {
+  it("findByFingerprint는 지문으로 DB를 조회해 Done 행보다 Todo 행을 먼저 돌려준다", async () => {
     fetchMock.mockResolvedValueOnce(
       json(200, {
         results: [
           {
+            id: "page-done",
+            url: "https://notion.so/page-done",
+            properties: {
+              [QA_PROPS.count]: { number: 9 },
+              [QA_PROPS.progress]: { select: { name: "Done" } },
+            },
+          },
+          {
             id: "page-1",
+            url: "https://notion.so/page-1",
             properties: {
               [QA_PROPS.count]: { number: 3 },
               [QA_PROPS.progress]: { select: { name: "Todo" } },
@@ -51,7 +60,12 @@ describe("createQaNotionClient", () => {
 
     const row = await client.findByFingerprint("abc")
 
-    expect(row).toEqual({ pageId: "page-1", count: 3, progress: "Todo" })
+    expect(row).toEqual({
+      pageId: "page-1",
+      count: 3,
+      progress: "Todo",
+      url: "https://notion.so/page-1",
+    })
     const call = lastCall()
     expect(call.url).toBe("https://api.notion.com/v1/databases/db-1/query")
     expect(call.method).toBe("POST")
@@ -131,7 +145,7 @@ describe("createQaNotionClient", () => {
     expect(call.body.children).toEqual([BODY_BLOCK])
   })
 
-  it("bumpRow는 횟수·마지막 발생·환경을 갱신하고 reopen이면 Todo로 되돌리고 재발을 적는다", async () => {
+  it("bumpRow는 횟수·마지막 발생·환경만 갱신하고 진행·원인 요약은 건드리지 않는다", async () => {
     fetchMock.mockResolvedValueOnce(json(200, { id: "page-1" }))
     const client = createQaNotionClient(ENV, fetchMock)
 
@@ -139,7 +153,6 @@ describe("createQaNotionClient", () => {
       count: 4,
       occurredAt: "2026-11-10T02:00:00.000Z",
       environment: "Android · Chrome · 412x915 · vabcdef0",
-      reopen: true,
     })
 
     const call = lastCall()
@@ -155,28 +168,6 @@ describe("createQaNotionClient", () => {
         { text: { content: "Android · Chrome · 412x915 · vabcdef0" } },
       ],
     })
-    expect(props[QA_PROPS.progress]).toEqual({ select: { name: "Todo" } })
-    expect(props[QA_PROPS.causeSummary]).toEqual({
-      rich_text: [
-        {
-          text: { content: "[재발] 해결 처리 후 다시 발생 — 원인 재확인 필요" },
-        },
-      ],
-    })
-  })
-
-  it("bumpRow는 reopen이 아니면 진행·원인 요약을 건드리지 않는다", async () => {
-    fetchMock.mockResolvedValueOnce(json(200, { id: "page-1" }))
-    const client = createQaNotionClient(ENV, fetchMock)
-
-    await client.bumpRow("page-1", {
-      count: 2,
-      occurredAt: "2026-11-10T02:00:00.000Z",
-      environment: "v",
-      reopen: false,
-    })
-
-    const props = lastCall().body.properties as Record<string, unknown>
     expect(props[QA_PROPS.progress]).toBeUndefined()
     expect(props[QA_PROPS.causeSummary]).toBeUndefined()
   })

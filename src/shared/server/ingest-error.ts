@@ -77,7 +77,8 @@ function parseApi(value: unknown): ErrorReport["api"] {
 }
 
 /**
- * 리포트 하나를 노션에 upsert한다. 같은 지문이면 횟수+1, Done 처리된 행이면 Todo로 되돌린다(재발).
+ * 리포트 하나를 노션에 upsert한다. 같은 지문의 Todo 행이 있으면 횟수+1.
+ * 해결(Done)된 행뿐이면 그 행은 닫힌 기록으로 두고, 이전 행 링크를 단 새 행을 만든다(재발).
  * ponytail: 조회→생성 사이에 같은 지문이 겹치면 행이 2개 생길 수 있다. 노션엔 원자적 upsert가 없다.
  */
 export async function ingestErrorReport(
@@ -96,12 +97,11 @@ export async function ingestErrorReport(
   const fingerprint = await computeFingerprint(report, stack.topFrame)
   const existing = await deps.notion.findByFingerprint(fingerprint)
 
-  if (existing) {
+  if (existing && existing.progress !== "Done") {
     await deps.notion.bumpRow(existing.pageId, {
       count: existing.count + 1,
       occurredAt: report.occurredAt,
       environment: buildEnvironment(report),
-      reopen: existing.progress === "Done",
     })
     return
   }
@@ -117,6 +117,7 @@ export async function ingestErrorReport(
     fingerprint,
     environment: buildEnvironment(report),
     occurredAt: report.occurredAt,
+    causeSummary: existing ? `[재발] 이전 해결 행: ${existing.url}` : undefined,
     children: buildRowBlocks(report, stack),
   })
 }
