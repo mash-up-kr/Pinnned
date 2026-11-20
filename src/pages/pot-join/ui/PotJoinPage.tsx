@@ -25,7 +25,7 @@ import {
 import { useSessionStore } from "@/entities/user"
 
 // [정책 1893-21176 #2] 영문+숫자 혼용 6자리 고정 입력
-const CODE_LENGTH = 6
+const CODE_LENGTH = 8
 
 // [정책 1893-21176 #4·#5·#6] 에러 토스트 문구 — 3초 노출은 토스트 기본 duration
 const JOIN_ERROR_MESSAGES = {
