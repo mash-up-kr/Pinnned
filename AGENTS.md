@@ -15,6 +15,7 @@ Source of truth is `.claude/`. This file is a map. Do not restate rules here.
 3. `.claude/rules/front.md` when editing `src/**/*.ts` or `src/**/*.tsx`
 4. `.claude/rules/backend.md` for backend integration work
 5. `.claude/rules/ui.md` when editing `src/**/*.tsx` or `src/app/styles.css`
+6. `.claude/rules/wiki.md` when changing product behavior or backend contracts
 
 ## Non-negotiable
 

@@ -11,7 +11,7 @@ TanStack Start(SSR) · React 19 · TS strict · Tailwind 4 · shadcn/ui · pnpm.
 
 ## Rules (`.claude/rules`, 자동 로드)
 
-- `behavior.md` · `simplicity.md`: 항상 · `front.md`: `src/**/*.ts(x)` 작업 시 · `ui.md`: `src/**/*.tsx`·`styles.css` 작업 시 · `backend.md`: BE 연동 작업
+- `behavior.md` · `simplicity.md`: 항상 · `front.md`: `src/**/*.ts(x)` 작업 시 · `ui.md`: `src/**/*.tsx`·`styles.css` 작업 시 · `backend.md`: BE 연동 작업 · `wiki.md`: 제품 동작·BE 계약 작업 시
 
 ## Skills (`.claude/skills`)
 

@@ -26,6 +26,10 @@ curl -s -X POST https://pinnnned.duckdns.org/graphql -H 'Content-Type: applicati
 
 REST 동작도 curl로 직접 확인한다.
 
+## FE↔BE 계약
+
+이미 확인된 계약(인증, 에러 코드, 지역코드, 업로드)은 팀 위키 `wiki/contract/`에 있다. 먼저 읽고, 다르면 코드·배포본을 따르고 알린다 ([wiki.md](wiki.md)).
+
 ## 원칙
 
 - 노션·슬랙 메모보다 코드·배포본이 우선. 다르면 사용자에게 알린다.
