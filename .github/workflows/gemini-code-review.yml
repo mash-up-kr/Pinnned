@@ -7,6 +7,8 @@ on:
     types:
       - opened
       - ready_for_review
+      # 추가 커밋도 리뷰한다 (셀프머지는 최신 코드의 봇 리뷰가 기준)
+      - synchronize
 
 permissions:
   contents: read
@@ -29,6 +31,32 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 맥락 리뷰: 팀 위키(제품 규칙·FE↔BE 계약·결정)와 어긋나는 변경만 지적한다.
+      # 위키에 인용이 실제로 있는 지적만 남기며, 실패해도 PR 체크를 막지 않는다.
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Checkout team wiki
+        uses: actions/checkout@v6
+        with:
+          repository: inhachoi/pinnned-llm-wiki
+          path: .wiki
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Run context review against team wiki
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          WIKI_REPO: inhachoi/pinnned-llm-wiki
+        run: node scripts/context-review.mjs --wiki .wiki
 
       - name: Add LGTM when no review findings
         if: success()
