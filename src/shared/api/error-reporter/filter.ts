@@ -25,7 +25,9 @@ export function shouldIgnoreError(input: {
   stack?: string
 }): boolean {
   // DOMException은 message에 이름이 안 들어간다 ("Transition was skipped...") — name도 함께 본다
-  const texts = [input.message, `${input.name}: ${input.message}`]
+  const texts = input.name
+    ? [input.message, `${input.name}: ${input.message}`]
+    : [input.message]
   if (
     IGNORED_MESSAGE_PATTERNS.some((pattern) =>
       texts.some((text) => pattern.test(text))
