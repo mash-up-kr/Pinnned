@@ -63,6 +63,8 @@ export function buildListFilter(since, until) {
         or: [
           { property: "마지막 발생", date: { on_or_after: since } },
           { property: "원인 요약", rich_text: { is_empty: true } },
+          // 지난 보류 행 — 이번 주 행과 합쳐야 보이는 패턴이 있다
+          { property: "원인 요약", rich_text: { starts_with: "[보류]" } },
         ],
       },
       { property: "마지막 발생", date: { before: until } },

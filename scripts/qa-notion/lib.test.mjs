@@ -126,7 +126,7 @@ describe("createDbProperties", () => {
 })
 
 describe("buildListFilter", () => {
-  it("진행=Todo 이면서 (기간 내 발생 OR 분석 전), until은 배타", () => {
+  it("진행=Todo 이면서 (기간 내 발생 OR 분석 전 OR 지난 보류), until은 배타", () => {
     const filter = buildListFilter(
       "2026-11-03T00:00:00+09:00",
       "2026-11-10T00:00:00+09:00"
@@ -141,6 +141,7 @@ describe("buildListFilter", () => {
               date: { on_or_after: "2026-11-03T00:00:00+09:00" },
             },
             { property: "원인 요약", rich_text: { is_empty: true } },
+            { property: "원인 요약", rich_text: { starts_with: "[보류]" } },
           ],
         },
         {
