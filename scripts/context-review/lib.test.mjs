@@ -4,6 +4,7 @@ import {
   annotateDiff,
   buildWikiText,
   formatFinding,
+  selectPages,
   validateFindings,
 } from "./lib.mjs"
 
@@ -115,5 +116,51 @@ describe("validateFindings", () => {
     })
 
     expect(result.inline).toHaveLength(3)
+  })
+})
+
+describe("selectPages", () => {
+  const index = {
+    path: "wiki/index.md",
+    text: [
+      "| [product/pot.md](product/pot.md) | `pages/pot-join` `entities/travel-pot` | 정원 |",
+      "| [product/map.md](product/map.md) | `pages/map-google` | 줌 |",
+      "| [contract/index.md](contract/index.md) | `shared/api` | 계약 |",
+    ].join("\n"),
+  }
+  const page = (path) => ({ path, text: "x".repeat(100) })
+  const all = [
+    index,
+    page("wiki/decisions.md"),
+    page("wiki/product/pot.md"),
+    page("wiki/product/map.md"),
+    page("wiki/contract/index.md"),
+    page("wiki/contract/auth.md"),
+  ]
+
+  it("예산 안이면 전부 넘긴다", () => {
+    expect(selectPages(all, ["src/pages/pot-join/ui/A.tsx"])).toHaveLength(6)
+  })
+
+  it("예산을 넘으면 목차의 경로와 맞는 쪽, 항상 포함 쪽, 목차만 남긴다", () => {
+    const paths = selectPages(all, ["src/pages/pot-join/ui/A.tsx"], 10).map(
+      (p) => p.path
+    )
+
+    expect(paths).toEqual([
+      "wiki/index.md",
+      "wiki/decisions.md",
+      "wiki/product/pot.md",
+      "wiki/contract/index.md",
+    ])
+  })
+
+  it("하위 목차가 맞으면 그 폴더의 쪽을 포함한다", () => {
+    const paths = selectPages(all, ["src/shared/api/client.ts"], 10).map(
+      (p) => p.path
+    )
+
+    expect(paths).toContain("wiki/contract/auth.md")
+    expect(paths).not.toContain("wiki/product/map.md")
   })
 })

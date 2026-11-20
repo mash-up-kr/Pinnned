@@ -12,6 +12,7 @@ import {
   buildWikiText,
   findingKey,
   formatFinding,
+  selectPages,
   validateFindings,
 } from "./context-review/lib.mjs"
 
@@ -41,7 +42,7 @@ const walk = (dir) =>
     return statSync(entry).isDirectory() ? walk(entry) : [entry]
   })
 
-const pages = walk(join(wikiDir, "wiki"))
+const allPages = walk(join(wikiDir, "wiki"))
   .filter((file) => file.endsWith(".md"))
   .map((file) => ({
     path: relative(wikiDir, file).replaceAll("\\", "/"),
@@ -57,6 +58,9 @@ if (!diffText) {
   console.log("리뷰할 코드 변경 없음")
   process.exit(0)
 }
+// 위키가 커지면 목차로 바뀐 경로에 해당하는 쪽만 고른다
+const pages = selectPages(allPages, [...commentable.keys()])
+console.log(`위키 ${allPages.length}쪽 중 ${pages.length}쪽 사용`)
 
 const prompt = `너는 Pinnned 팀의 도메인 맥락을 아는 리뷰어다. 아래 "위키"는 팀이 확정한 제품 규칙, FE↔BE 계약, 결정, 아직 열린 질문이다. "변경"은 PR의 diff다.
 

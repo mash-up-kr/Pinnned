@@ -116,3 +116,41 @@ export function formatFinding(item, wikiRepo) {
     : ""
   return `${MARKER}\n${findingKey(item)}\n**맥락 리뷰** · [\`${item.page}\`](${link})${ref}\n> ${item.quote}\n\n${item.comment}${caution}`
 }
+
+const ALWAYS = /^wiki\/(decisions|open-questions|glossary)\.md$/
+
+/**
+ * 위키가 예산을 넘게 커지면 목차 트리로 읽을 쪽을 고른다. 예산 안이면 전부 넘긴다.
+ * 목차 표의 각 줄에서 쪽 링크와 백틱 경로(`pages/pot-join` 등)를 읽어, 바뀐 파일 경로와 맞는 쪽만 남긴다.
+ * 결정·열린 질문·용어집과 목차 자신은 항상 포함한다.
+ */
+export function selectPages(pages, changedPaths, budgetChars = 400_000) {
+  const total = pages.reduce((sum, page) => sum + page.text.length, 0)
+  if (total <= budgetChars) return pages
+
+  const matched = new Set()
+  for (const index of pages.filter((p) => p.path.endsWith("/index.md"))) {
+    const dir = index.path.slice(0, index.path.lastIndexOf("/"))
+    for (const row of index.text.split("\n")) {
+      const link = row.match(/\]\(([^)\s]+\.md)\)/)?.[1]
+      if (!link || link.startsWith("..")) continue
+      const tokens = [...row.matchAll(/`([^`]+)`/g)].map((m) => m[1])
+      if (
+        tokens.some((token) =>
+          changedPaths.some((changed) => changed.includes(token))
+        )
+      )
+        matched.add(`${dir}/${link}`)
+    }
+  }
+  return pages.filter(
+    (page) =>
+      ALWAYS.test(page.path) ||
+      page.path.endsWith("/index.md") ||
+      matched.has(page.path) ||
+      // 하위 목차가 맞으면 그 폴더의 쪽도 포함한다
+      [...matched].some(
+        (m) => m.endsWith("/index.md") && page.path.startsWith(m.slice(0, -8))
+      )
+  )
+}
