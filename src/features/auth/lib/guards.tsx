@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useRouter } from "@tanstack/react-router"
 
+import { usePotStore } from "@/entities/travel-pot"
 import { useMe, useSessionStore } from "@/entities/user"
 import { USE_MOCK } from "@/shared/api/client"
 import { getRefreshToken } from "@/shared/api/token-storage"
@@ -59,6 +60,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     // 재로그인 대상 — 토큰이 있는 단순 네트워크 오류는 persist 세션으로 버틴다
     if (meQuery.isError && (!isAuthenticated || !getRefreshToken())) {
       logout()
+      // 다음 로그인이 다른 계정이면 남은 currentPotId로 남의 팟을 조회한다
+      usePotStore.getState().resetPots()
       router.navigate({ to: "/" })
     }
   }, [

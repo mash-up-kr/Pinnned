@@ -1,4 +1,5 @@
 import { reportRestFailure } from "./error-reporter/api-failure"
+import { reportApiFailure } from "./error-reporter/reporter"
 import { clearTokens, getRefreshToken, setTokens } from "./token-storage"
 
 async function doRefresh(): Promise<boolean> {
@@ -20,6 +21,12 @@ async function doRefresh(): Promise<boolean> {
 
   if (res.status === 401) {
     // INVALID_TOKEN / USER_NOT_FOUND — 세션 종료, RequireAuth 가드가 "/"로 보낸다
+    // 사용자가 강제 로그아웃되는 지점이라 4xx여도 남긴다 (14일 만료 외에 1회용 토큰 재사용으로도 난다)
+    reportApiFailure({
+      protocol: "rest",
+      name: "POST /api/auth/refresh",
+      status: 401,
+    })
     clearTokens()
     return false
   }

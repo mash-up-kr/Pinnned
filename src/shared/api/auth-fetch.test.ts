@@ -2,7 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { authFetch } from "./auth-fetch"
+import { reportApiFailure } from "./error-reporter/reporter"
 import { getAccessToken, getRefreshToken, setTokens } from "./token-storage"
+
+vi.mock("./error-reporter/reporter", () => ({ reportApiFailure: vi.fn() }))
 
 function jsonResponse(status: number, body: unknown = {}) {
   return new Response(JSON.stringify(body), { status })
@@ -74,5 +77,11 @@ describe("authFetch", () => {
     expect(res.status).toBe(401)
     expect(getAccessToken()).toBeNull()
     expect(getRefreshToken()).toBeNull()
+    // 강제 로그아웃 지점 — 이후 요청은 토큰 없이 나가 원인을 알 수 없으므로 여기서 남긴다
+    expect(reportApiFailure).toHaveBeenCalledWith({
+      protocol: "rest",
+      name: "POST /api/auth/refresh",
+      status: 401,
+    })
   })
 })

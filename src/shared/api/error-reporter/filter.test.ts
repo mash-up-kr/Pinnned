@@ -28,6 +28,25 @@ describe("shouldIgnoreError", () => {
     ).toBe(true)
   })
 
+  it("DOMException AbortError는 message에 이름이 없어도 name으로 무시한다", () => {
+    expect(
+      shouldIgnoreError({
+        name: "AbortError",
+        message: "Transition was skipped. New ViewTransition started",
+      })
+    ).toBe(true)
+  })
+
+  it("탭이 숨겨져 건너뛴 View transition은 무시한다", () => {
+    expect(
+      shouldIgnoreError({
+        name: "InvalidStateError",
+        message:
+          "View transition was skipped because document visibility state is hidden.",
+      })
+    ).toBe(true)
+  })
+
   it("스택 프레임이 전부 Clarity면 무시한다", () => {
     expect(
       shouldIgnoreError({

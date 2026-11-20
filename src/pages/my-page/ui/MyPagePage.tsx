@@ -199,6 +199,9 @@ function MyPageContent() {
     }
     clearTokens()
     logout()
+    // 팟 store가 남으면 같은 기기에서 다른 계정으로 로그인했을 때 이전 계정의 currentPotId로
+    // 사진을 조회해 FORBIDDEN이 난다
+    resetPots()
     // me 캐시가 남으면 뒤로가기·재진입 시 RequireAuth가 캐시로 세션을 되살린다(유령 로그인)
     queryClient.clear()
     await router.navigate({ to: "/" })
