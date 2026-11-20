@@ -5,7 +5,10 @@ import { reportApiFailure } from "./reporter"
 /** 토큰 만료 401은 authFetch가 refresh로 처리하는 정상 흐름이다. */
 const IGNORED_GRAPHQL_STATUSES = new Set([401])
 
-/** 비로그인 진입 시 me·myParties 등이 내는 UNAUTHENTICATED는 RequireAuth가 처리하는 정상 흐름이다. */
+/**
+ * 200 + UNAUTHENTICATED는 토큰 없이 나간 요청이다 (무효·만료 토큰은 401). 비로그인 진입의 me 조회거나,
+ * 세션이 끊긴 뒤의 재시도라 그 자체는 원인이 아니다 — 세션 종료는 token-refresh가 따로 보고한다.
+ */
 const IGNORED_GRAPHQL_CODES = new Set(["UNAUTHENTICATED"])
 
 /**
