@@ -9,7 +9,7 @@ paths:
 
 # 팀 위키 (제품 규칙 · FE↔BE 계약 · 결정)
 
-제품 동작이나 BE 연동을 바꾸기 전에 팀 위키 목차를 읽고 관련 1~3쪽만 연다. 위키: https://github.com/inhachoi/pinnned-llm-wiki
+제품 동작이나 BE 연동을 바꾸기 전에 팀 위키 목차를 읽고 해당하는 쪽만 골라 연다. 전체를 읽지 않는다. 바깥 동작이 그대로인 작업(내부 리팩터링, 스타일, 테스트)은 읽지 않는다. 위키: https://github.com/inhachoi/pinnned-llm-wiki
 
 ```bash
 # 옆 폴더에 클론이 있으면 ../pinnned-llm-wiki/wiki/index.md 를 읽는다. 없으면:
