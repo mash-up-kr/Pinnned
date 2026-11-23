@@ -135,6 +135,9 @@ function toRoutePattern(pathname: string): string {
   return matched ? matched[1] : normalizeRestPath(pathname)
 }
 
+/** 트리아지·수동 확인이 운영에 보내는 재현 요청의 User-Agent 표시. 이 요청의 실패는 기록하지 않는다 (재현이 다시 오류 행이 되는 것 방지). */
+export const REPRO_USER_AGENT = "pinnned-triage"
+
 /**
  * 서버 엔트리용. SSR 예외·5xx를 ssr-error로 기록한다. env가 없거나 실패하면 조용히 넘어간다.
  * /report-error 자체의 실패는 기록하지 않는다 (재귀 방지).
@@ -146,6 +149,7 @@ export async function ingestServerError(
   try {
     const url = new URL(request.url)
     if (url.pathname === "/report-error") return
+    if (request.headers.get("user-agent")?.includes(REPRO_USER_AGENT)) return
     const token = process.env.NOTION_TOKEN
     const databaseId = process.env.NOTION_QA_DB_ID
     if (!token || !databaseId) return
