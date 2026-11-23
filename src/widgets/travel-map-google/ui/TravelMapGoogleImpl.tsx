@@ -1563,7 +1563,9 @@ function TravelMapGoogleInner({
   }, [currentPotId, mapReady, onMapTipsStart, runCameraMove])
 
   // 안내는 전역 오버레이라 지도를 떠나도 남는다 — 지도가 언마운트될 때 닫는다
-  React.useEffect(() => closeMapTipsOverlay, [])
+  React.useEffect(() => {
+    return () => closeMapTipsOverlay()
+  }, [])
 
   React.useEffect(() => {
     if (!mapReady) return

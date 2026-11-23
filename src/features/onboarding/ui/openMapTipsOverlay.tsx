@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { overlay } from "overlay-kit"
 
 import photoGyeongjuSrc from "../assets/map-tip-gyeongju.jpg"
@@ -132,17 +132,20 @@ function PhotoFrame({
 
 function MapTipsOverlay({
   potId,
+  overlayId,
   onStart,
   unmount,
 }: {
   potId: string
+  overlayId: string
   onStart?: () => void
   unmount: () => void
 }) {
-  // unmount의 참조가 렌더마다 바뀌어도 등록은 한 번만 한다
-  const unmountRef = useRef(unmount)
-  unmountRef.current = unmount
-  useEffect(() => registerMapTipsOverlay(() => unmountRef.current()), [])
+  // prop의 unmount는 렌더마다 새 함수라 의존성으로 쓰면 재등록이 반복된다 — 바뀌지 않는 overlayId로 닫는다
+  useEffect(
+    () => registerMapTipsOverlay(() => overlay.unmount(overlayId)),
+    [overlayId]
+  )
 
   // 배경이 그려진 직후 대기 중인 토스트를 띄운다 — 다른 팟의 토스트가 남아 있으면 버린다
   useEffect(() => {
@@ -297,8 +300,13 @@ export function openMapTipsOverlay(options: {
   if (seen.includes(potId)) return false
   localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, potId]))
 
-  overlay.open(({ unmount }) => (
-    <MapTipsOverlay potId={potId} onStart={onStart} unmount={unmount} />
+  overlay.open(({ unmount, overlayId }) => (
+    <MapTipsOverlay
+      potId={potId}
+      overlayId={overlayId}
+      onStart={onStart}
+      unmount={unmount}
+    />
   ))
   return true
 }
