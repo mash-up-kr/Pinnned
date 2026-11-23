@@ -130,6 +130,24 @@ describe("ingestServerError", () => {
     vi.unstubAllEnvs()
   })
 
+  it("재현 요청 표시가 붙은 User-Agent는 기록하지 않는다", async () => {
+    const fetchSpy = vi.fn<typeof fetch>()
+    vi.stubGlobal("fetch", fetchSpy)
+    vi.stubEnv("NOTION_TOKEN", "ntn_x")
+    vi.stubEnv("NOTION_QA_DB_ID", "db")
+
+    await ingestServerError(
+      new Request("https://www.pinnned.co.kr/llms.txt", {
+        headers: { "user-agent": "pinnned-triage" },
+      }),
+      new Error("HTTP 500")
+    )
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
   it("동적 세그먼트를 라우트 패턴·화면 이름으로 바꿔 기록한다", async () => {
     const fetchSpy = vi.fn<typeof fetch>()
     fetchSpy
