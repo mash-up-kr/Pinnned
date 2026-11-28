@@ -3,6 +3,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router"
 import { useAllPhotos } from "@/entities/photo"
 import { usePotStore } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
+import { useMapTipsOpen } from "@/features/onboarding"
 import { BottomNav } from "@/widgets/bottom-nav"
 import { useAppBottomNav } from "@/shared/ui/app-bottom-nav-context"
 
@@ -15,6 +16,8 @@ function AppBottomNav() {
   const userId = useSessionStore((state) => state.currentUser?.id ?? null)
   const photos = useAllPhotos(currentPotId, userId)
   const { mapState, recenterMap } = useAppBottomNav()
+  // 지도 사용 안내는 내비까지 덮는 화면이다 — 내비가 안내 위에 떠서 눌리지 않게 숨긴다
+  const mapTipsOpen = useMapTipsOpen()
 
   const active =
     pathname === "/travel-album"
@@ -25,7 +28,7 @@ function AppBottomNav() {
   const isMap = pathname === "/map-google"
   const isTabPage = isMap || active !== undefined
 
-  if (!isTabPage || (isMap && !mapState.visible)) return null
+  if (!isTabPage || mapTipsOpen || (isMap && !mapState.visible)) return null
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),34px)] z-10">

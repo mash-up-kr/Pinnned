@@ -4,6 +4,8 @@ export {
 } from "./ui/openOnboardingOverlay"
 export {
   openMapTipsOverlay,
+  closeMapTipsOverlay,
+  useMapTipsOpen,
   hasSeenMapTips,
   resetMapTipsSeen,
   showToastWithMapTips,

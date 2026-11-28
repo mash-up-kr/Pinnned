@@ -74,7 +74,11 @@ import {
   usePotStore,
 } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
-import { hasSeenMapTips, openMapTipsOverlay } from "@/features/onboarding"
+import {
+  closeMapTipsOverlay,
+  hasSeenMapTips,
+  openMapTipsOverlay,
+} from "@/features/onboarding"
 import { TravelRecordFlow, useRecordStore } from "@/features/travel-record"
 import iconAddSrc from "@/shared/assets/icon-add.svg"
 import { computeCentroid, computeFeatureBBox } from "@/shared/lib/geo"
@@ -1558,6 +1562,11 @@ function TravelMapGoogleInner({
       else pendingTipsBackdropRef.current = true
     }
   }, [currentPotId, mapReady, onMapTipsStart, runCameraMove])
+
+  // 안내는 전역 오버레이라 지도를 떠나도 남는다 — 지도가 언마운트될 때 닫는다
+  React.useEffect(() => {
+    return () => closeMapTipsOverlay()
+  }, [])
 
   React.useEffect(() => {
     if (!mapReady) return

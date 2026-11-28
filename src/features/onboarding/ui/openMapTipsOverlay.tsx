@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { overlay } from "overlay-kit"
 
 import photoGyeongjuSrc from "../assets/map-tip-gyeongju.jpg"
@@ -26,6 +26,48 @@ function readSeenPotIds(): Array<string> {
   } catch {
     return []
   }
+}
+
+// 떠 있는 안내의 닫기 함수. 안내는 전역 오버레이라 화면을 옮겨도 남고, 하단 내비는 페이지 밖
+// (다른 쌓임 맥락)에 있어 안내 위로 올라온다 — 그래서 열림 상태를 밖에서 읽고 닫을 수 있게 둔다.
+let openTipsUnmount: (() => void) | null = null
+const openListeners = new Set<() => void>()
+
+function setOpenTipsUnmount(next: (() => void) | null) {
+  openTipsUnmount = next
+  openListeners.forEach((listener) => listener())
+}
+
+/** 안내가 마운트될 때 등록한다. 돌려주는 함수는 언마운트 때 부른다. */
+export function registerMapTipsOverlay(unmount: () => void): () => void {
+  setOpenTipsUnmount(unmount)
+  return () => {
+    if (openTipsUnmount === unmount) setOpenTipsUnmount(null)
+  }
+}
+
+export function isMapTipsOpen(): boolean {
+  return openTipsUnmount !== null
+}
+
+/** 지도를 떠날 때 부른다 — 안내가 다른 화면 위에 남지 않게 닫는다. 떠 있지 않으면 아무 일도 없다. */
+export function closeMapTipsOverlay() {
+  const unmount = openTipsUnmount
+  if (!unmount) return
+  setOpenTipsUnmount(null)
+  unmount()
+}
+
+function subscribeMapTipsOpen(listener: () => void): () => void {
+  openListeners.add(listener)
+  return () => {
+    openListeners.delete(listener)
+  }
+}
+
+/** 안내가 떠 있는 동안 true — 하단 내비를 숨기는 데 쓴다 (시안은 안내가 내비까지 덮는다). */
+export function useMapTipsOpen(): boolean {
+  return useSyncExternalStore(subscribeMapTipsOpen, isMapTipsOpen, () => false)
 }
 
 // 56px 표시용 축소본(3x) — 원본(Figma export, 2~3MB)은 프레임보다 사진이 한참 늦게 떠서 분리
@@ -90,13 +132,21 @@ function PhotoFrame({
 
 function MapTipsOverlay({
   potId,
+  overlayId,
   onStart,
   unmount,
 }: {
   potId: string
+  overlayId: string
   onStart?: () => void
   unmount: () => void
 }) {
+  // prop의 unmount는 렌더마다 새 함수라 의존성으로 쓰면 재등록이 반복된다 — 바뀌지 않는 overlayId로 닫는다
+  useEffect(
+    () => registerMapTipsOverlay(() => overlay.unmount(overlayId)),
+    [overlayId]
+  )
+
   // 배경이 그려진 직후 대기 중인 토스트를 띄운다 — 다른 팟의 토스트가 남아 있으면 버린다
   useEffect(() => {
     if (pendingToast?.potId === potId) showToast(pendingToast.options)
@@ -250,8 +300,13 @@ export function openMapTipsOverlay(options: {
   if (seen.includes(potId)) return false
   localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, potId]))
 
-  overlay.open(({ unmount }) => (
-    <MapTipsOverlay potId={potId} onStart={onStart} unmount={unmount} />
+  overlay.open(({ unmount, overlayId }) => (
+    <MapTipsOverlay
+      potId={potId}
+      overlayId={overlayId}
+      onStart={onStart}
+      unmount={unmount}
+    />
   ))
   return true
 }
