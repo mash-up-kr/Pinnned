@@ -68,6 +68,19 @@ describe("createMapFetcher", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it("origin이 접두사만 같은 다른 호스트는 내려받지 않는다", async () => {
+    vi.stubGlobal("fetch", fetchMock)
+    const fetchMap = createMapFetcher("https://www.pinnned.co.kr")
+
+    expect(
+      await fetchMap("https://www.pinnned.co.kr.evil.com/assets/a.js.map")
+    ).toBeNull()
+    expect(
+      await fetchMap("https://www.pinnned.co.kr@evil.com/assets/a.js.map")
+    ).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("404면 null", async () => {
     vi.stubGlobal("fetch", fetchMock)
     fetchMock.mockResolvedValue(new Response("", { status: 404 }))

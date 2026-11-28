@@ -51,14 +51,18 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       return
     }
 
-    if (meQuery.data) {
+    // me 실패: 로컬 세션도 없거나, 세션은 남았는데 토큰이 없으면(refresh 실패로 폐기됨)
+    // 재로그인 대상 — 토큰이 있는 단순 네트워크 오류는 persist 세션으로 버틴다.
+    // 이전에 성공한 me 값(data)은 재조회가 실패해도 캐시에 남으므로 data보다 먼저 판정한다
+    const sessionLost =
+      meQuery.isError && (!isAuthenticated || !getRefreshToken())
+
+    if (meQuery.data && !sessionLost) {
       login(meQuery.data)
       return
     }
 
-    // me 실패: 로컬 세션도 없거나, 세션은 남았는데 토큰이 없으면(refresh 실패로 폐기됨)
-    // 재로그인 대상 — 토큰이 있는 단순 네트워크 오류는 persist 세션으로 버틴다
-    if (meQuery.isError && (!isAuthenticated || !getRefreshToken())) {
+    if (sessionLost) {
       logout()
       // 다음 로그인이 다른 계정이면 남은 currentPotId로 남의 팟을 조회한다
       usePotStore.getState().resetPots()

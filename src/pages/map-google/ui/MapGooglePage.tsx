@@ -31,7 +31,6 @@ import {
   usePotsHydrated,
 } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
-import { trackEvent } from "@/shared/api/analytics"
 import { useAppBottomNav } from "@/shared/ui/app-bottom-nav-context"
 
 function MapGooglePageContent() {
@@ -87,7 +86,6 @@ function MapGooglePageContent() {
 
   const decorating = useRecordStore((s) => s.region !== null)
   const [detailRegion, setDetailRegion] = React.useState<string | null>(null)
-  const trackedDetailRegion = React.useRef<string | null>(null)
   const [mapZoomStage, setMapZoomStage] = React.useState<ZoomStage>(0)
   const showMapChrome = !decorating && detailRegion === null
   // 지도 진입·상태 변경을 화면에 그리기 전에 반영해 이전 표시 상태가 보이지 않게 한다.
@@ -147,16 +145,15 @@ function MapGooglePageContent() {
         <TravelMapGoogle
           className="absolute inset-0"
           onAlbumAvailabilityChange={(available) =>
-            setMapState((state) => ({ ...state, albumDisabled: !available }))
+            // 값이 같으면 같은 객체를 돌려준다 — 새 객체면 컨텍스트가 바뀌어 이 화면이 다시 그려지고,
+            // 그때마다 새로 만들어진 이 콜백을 위젯 effect가 또 불러 렌더가 끝없이 돈다
+            setMapState((state) =>
+              state.albumDisabled === !available
+                ? state
+                : { ...state, albumDisabled: !available }
+            )
           }
-          onRegionDetailChange={(region) => {
-            setDetailRegion(region)
-            if (region && trackedDetailRegion.current !== region) {
-              trackedDetailRegion.current = region
-              trackEvent("map_viewed", { metadata: { region } })
-            }
-            if (!region) trackedDetailRegion.current = null
-          }}
+          onRegionDetailChange={setDetailRegion}
           onZoomStageChange={setMapZoomStage}
           onMapReady={setMapReady}
           onMapTipsStart={() => {

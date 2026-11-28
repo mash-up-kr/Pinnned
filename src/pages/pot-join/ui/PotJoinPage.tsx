@@ -22,7 +22,7 @@ import {
   useJoinParty,
   usePotStore,
 } from "@/entities/travel-pot"
-import { useSessionStore } from "@/entities/user"
+import { useMe, useSessionStore } from "@/entities/user"
 
 // [정책 1893-21176 #2] 영문+숫자 혼용 6자리 고정 입력
 const CODE_LENGTH = 6
@@ -180,7 +180,12 @@ function PotJoinPageContent({ initialCode }: { initialCode?: string }) {
   // 초대링크로 보관된 코드 소비 — 여기(인증 통과 후)까지 왔으면 역할이 끝났으니
   // 지운다. search로 못 받은 경로(로그인 콜백 복귀 등)에선 프리필로도 쓴다.
   // 마운트 효과로 채워야 SSR 첫 렌더(빈 셀)와 hydration이 어긋나지 않는다
+  // 저장된 세션만으로도 이 화면은 열린다(RequireAuth) — me가 확인되기 전에 지우면,
+  // 세션이 만료돼 다시 로그인하러 간 유저가 돌아올 때 코드가 없어 지도로 간다
+  const sessionConfirmed =
+    useMe({ enabled: false }).data !== undefined || USE_MOCK
   React.useEffect(() => {
+    if (!sessionConfirmed) return
     const pending = takePendingInviteCode()
     if (!pending || initialCode) return
     // NumberCode alphanumeric과 같은 규칙 [정책 #2: 영문 소문자+숫자 6자리]
@@ -189,7 +194,7 @@ function PotJoinPageContent({ initialCode }: { initialCode?: string }) {
       .replace(/[^a-z0-9]/g, "")
       .slice(0, CODE_LENGTH)
     if (sanitized) setCode(sanitized)
-  }, [initialCode])
+  }, [initialCode, sessionConfirmed])
 
   // 뒤로가기 — 실제 진입 지점(팟 시작 온보딩/지도 드롭다운)으로 복귀 [정책 #1].
   // 초대링크로 곧장 진입하면(replace 체인) 되돌아갈 히스토리가 없어 back()이

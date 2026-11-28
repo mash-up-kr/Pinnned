@@ -92,7 +92,9 @@ export function createMapFetcher(
 ): (mapUrl: string) => Promise<string | null> {
   const cache = new Map<string, Promise<string | null>>()
   return (mapUrl) => {
-    if (!mapUrl.startsWith(origin)) return Promise.resolve(null)
+    // 접두사 비교는 "https://자사도메인.evil.com"을 통과시킨다 — 파싱한 origin으로 비교한다
+    if (!URL.canParse(mapUrl) || new URL(mapUrl).origin !== origin)
+      return Promise.resolve(null)
     let pending = cache.get(mapUrl)
     if (!pending) {
       pending = fetch(mapUrl, {
