@@ -147,7 +147,13 @@ function MapGooglePageContent() {
         <TravelMapGoogle
           className="absolute inset-0"
           onAlbumAvailabilityChange={(available) =>
-            setMapState((state) => ({ ...state, albumDisabled: !available }))
+            // 값이 같으면 같은 객체를 돌려준다 — 새 객체면 컨텍스트가 바뀌어 이 화면이 다시 그려지고,
+            // 그때마다 새로 만들어진 이 콜백을 위젯 effect가 또 불러 렌더가 끝없이 돈다
+            setMapState((state) =>
+              state.albumDisabled === !available
+                ? state
+                : { ...state, albumDisabled: !available }
+            )
           }
           onRegionDetailChange={(region) => {
             setDetailRegion(region)
