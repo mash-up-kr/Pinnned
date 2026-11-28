@@ -79,6 +79,7 @@ import { TravelRecordFlow, useRecordStore } from "@/features/travel-record"
 import iconAddSrc from "@/shared/assets/icon-add.svg"
 import { computeCentroid, computeFeatureBBox } from "@/shared/lib/geo"
 import { loadKoreaGeoJson } from "@/shared/lib/loadKoreaGeoJson"
+import { trackEvent } from "@/shared/api/analytics"
 import { REGION_NAME_BY_CODE } from "@/shared/api/region-codes"
 import { cn } from "@/shared/lib/utils"
 import { openBottomSheet } from "@/shared/ui/bottom-sheet"
@@ -1615,6 +1616,7 @@ function TravelMapGoogleInner({
 
       if (action === "ignore") return
       if (action === "view-records") {
+        trackEvent("map_viewed", { metadata: { region: name } })
         openBottomSheet(
           ({ close }) => (
             <RegionRecordsBottomSheet

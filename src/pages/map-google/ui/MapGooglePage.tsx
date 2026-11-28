@@ -31,7 +31,6 @@ import {
   usePotsHydrated,
 } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
-import { trackEvent } from "@/shared/api/analytics"
 import { useAppBottomNav } from "@/shared/ui/app-bottom-nav-context"
 
 function MapGooglePageContent() {
@@ -87,7 +86,6 @@ function MapGooglePageContent() {
 
   const decorating = useRecordStore((s) => s.region !== null)
   const [detailRegion, setDetailRegion] = React.useState<string | null>(null)
-  const trackedDetailRegion = React.useRef<string | null>(null)
   const [mapZoomStage, setMapZoomStage] = React.useState<ZoomStage>(0)
   const showMapChrome = !decorating && detailRegion === null
   // 지도 진입·상태 변경을 화면에 그리기 전에 반영해 이전 표시 상태가 보이지 않게 한다.
@@ -155,14 +153,7 @@ function MapGooglePageContent() {
                 : { ...state, albumDisabled: !available }
             )
           }
-          onRegionDetailChange={(region) => {
-            setDetailRegion(region)
-            if (region && trackedDetailRegion.current !== region) {
-              trackedDetailRegion.current = region
-              trackEvent("map_viewed", { metadata: { region } })
-            }
-            if (!region) trackedDetailRegion.current = null
-          }}
+          onRegionDetailChange={setDetailRegion}
           onZoomStageChange={setMapZoomStage}
           onMapReady={setMapReady}
           onMapTipsStart={() => {
