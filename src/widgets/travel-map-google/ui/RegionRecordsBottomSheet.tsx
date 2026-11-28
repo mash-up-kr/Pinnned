@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { resolveSheetDrag } from "../lib/sheetDrag"
 import { getKeywordBadgeStyle } from "../lib/keywordBadge"
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
@@ -14,6 +14,7 @@ import {
   useAllPhotos,
   useBlockedAuthors,
   useDeletePhoto,
+  usePhotos,
 } from "@/entities/photo"
 import { usePotStore } from "@/entities/travel-pot"
 import { useSessionStore } from "@/entities/user"
@@ -187,15 +188,23 @@ export function RegionRecordsBottomSheet({
   const livePhotos = useAllPhotos(potId, currentUserId).filter(
     (photo) => photo.region === region
   )
+  // 스냅샷(photos)은 사진 목록을 받기 전에만 쓴다 — 받은 뒤에도 쓰면 이 지역의
+  // 마지막 사진을 지웠을 때 지운 사진이 스냅샷에서 되살아난다
+  const { isSuccess: photosLoaded } = usePhotos(potId)
   const regionPhotos =
-    livePhotos.length > 0
+    livePhotos.length > 0 || photosLoaded
       ? livePhotos
       : photos.filter(
           (photo) =>
             photo.region === region &&
             !blocked.some((author) => author.id === photo.uploaderId)
         )
-  const latestTrip = groupTrips(regionPhotos)[0]
+  const latestTrip = groupTrips(regionPhotos).at(0)
+  // 보여줄 기록이 없어지면(마지막 사진 삭제) 빈 시트를 남기지 않고 닫는다
+  const empty = !latestTrip
+  useEffect(() => {
+    if (empty) onClose()
+  }, [empty, onClose])
   const [expanded, setExpanded] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -402,6 +411,8 @@ export function RegionRecordsBottomSheet({
     .filter((keyword): keyword is NonNullable<typeof keyword> =>
       Boolean(keyword)
     )
+
+  if (!latestTrip) return null
 
   return (
     <div
